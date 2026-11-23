@@ -1,0 +1,75 @@
+.pending-message {
+  margin: 0 0 20px auto;
+  width: fit-content;
+  max-width: 85%;
+}
+.pending-message-row {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+}
+.pending-message .message-bubble {
+  min-width: 0;
+  background: #eaf4fc;
+}
+.pending-message p {
+  font-size: 14px;
+  line-height: 1.6;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.message-retry {
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  min-height: 28px;
+  padding: 0;
+  color: #9b6856;
+  border-radius: 50%;
+}
+.message-retry:hover:not(:disabled) {
+  background: #eaf4fc;
+}
+.submission-spinner {
+  flex-shrink: 0;
+  width: 14px;
+  height: 14px;
+  color: #648bab;
+}
+.submission-status {
+  margin-top: 5px;
+  color: #607d96;
+  font-size: 12px;
+  line-height: 1.65;
+  overflow-wrap: anywhere;
+}
+.pending-message .submission-status {
+  text-align: right;
+}
+.submission-status[data-status="failed"],
+.submission-status[data-status="unknown"],
+.submission-status[data-status="conflict"] {
+  color: #986653;
+}
+.submission-details summary {
+  cursor: pointer;
+  color: #607d96;
+}
+.submission-details p {
+  font-size: 12px;
+  margin-top: 4px;
+}
+.submission-notice {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin-top: 12px;
+}
+.conversation-load-error,
+.draft-storage-warning {
+  font-size: 12px;
+  line-height: 1.7;
+  color: #986653;
+  margin: 12px 0;
+}

@@ -1,0 +1,222 @@
+/* 课程安排独立样式，复用全站按钮与奶蓝 tokens。 */
+.course-plan-dialog {
+  width: min(540px, calc(100% - 32px));
+  max-width: none;
+  max-height: calc(100dvh - 40px);
+  margin: auto;
+  padding: 0;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 24px;
+  background: var(--surface);
+  color: var(--text);
+  box-shadow: 0 24px 80px #18395830;
+}
+.course-plan-dialog[open] {
+  display: flex;
+  flex-direction: column;
+}
+.course-plan-dialog::backdrop {
+  background: #253e5740;
+  backdrop-filter: blur(3px);
+}
+.course-plan-header {
+  padding: 22px 28px 20px;
+  background: linear-gradient(125deg, #f1f9ff, var(--surface));
+  flex-shrink: 0;
+}
+.course-plan-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.course-plan-heading h2 {
+  font-size: 23px;
+  font-weight: 650;
+  overflow-wrap: anywhere;
+}
+.course-plan-close,
+.scene-plan-info {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  flex-shrink: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: #5187ae;
+}
+.course-plan-close:hover:not(:disabled),
+.scene-plan-info:hover:not(:disabled) {
+  background: var(--primary-soft);
+}
+.scene-plan-info {
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  color: #6b879d;
+}
+.scene-plan-info:focus-visible {
+  outline-width: 2px;
+  outline-offset: 2px;
+}
+.course-plan-meta {
+  display: flex;
+  flex-wrap: wrap;
+  row-gap: 5px;
+  margin-top: 8px;
+  color: #627c92;
+  font-size: 12px;
+}
+.course-plan-meta span + span::before {
+  content: "·";
+  margin: 0 10px;
+  color: #9db2c3;
+}
+.course-plan-body {
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 0 28px;
+  scrollbar-width: thin;
+}
+.course-plan-topics {
+  list-style: none;
+  margin: 0;
+  padding: 5px 0;
+}
+.course-topic {
+  display: grid;
+  grid-template-columns: 32px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  padding: 18px 0;
+  border-bottom: 1px solid #edf3f8;
+}
+.course-topic:last-child {
+  border-bottom: 0;
+}
+.course-topic-number {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: #f1f6fa;
+  color: #70899e;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+.course-topic.current .course-topic-number {
+  background: var(--primary-soft);
+  color: var(--primary);
+}
+.course-topic.completed .course-topic-number {
+  background: #e9f5ee;
+  color: #42785f;
+}
+.course-topic-copy {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.course-topic-copy h3 {
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.5;
+}
+.course-topic-copy p {
+  margin-top: 4px;
+  color: #6b8397;
+  font-size: 12px;
+  line-height: 1.6;
+}
+.course-topic-status {
+  font-size: 11px;
+  color: var(--primary);
+  white-space: nowrap;
+}
+.course-topic.completed .course-topic-status {
+  color: #648374;
+}
+.course-plan-footer {
+  display: flex;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding: 18px 28px;
+  border-top: 1px solid var(--border);
+  flex-shrink: 0;
+}
+.course-plan-footer .primary {
+  min-width: 150px;
+}
+.course-plan-body .error-box {
+  margin: 14px 0;
+}
+.course-plan-body .pending-create-note {
+  font-size: 12px;
+}
+.scene-title-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 28px;
+}
+.featured-copy .scene-title-row h3 {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+.scene-current-topic {
+  margin: 8px 0 6px;
+  font-size: 14px;
+  line-height: 1.5;
+}
+.featured-copy .scene-progress {
+  margin-top: 16px;
+}
+@media (max-width: 540px) {
+  .course-plan-dialog {
+    width: calc(100% - 24px);
+    max-height: calc(100dvh - 24px);
+    border-radius: 20px;
+  }
+  .course-plan-header {
+    padding: 16px 20px;
+  }
+  .course-plan-heading h2 {
+    font-size: 20px;
+  }
+  .course-plan-body {
+    padding: 0 20px;
+  }
+  .course-plan-footer {
+    padding: 16px 20px;
+  }
+  .course-topic {
+    gap: 10px;
+  }
+}
+@media (max-width: 380px) {
+  .course-topic {
+    grid-template-columns: 28px minmax(0, 1fr);
+  }
+  .course-topic-status {
+    grid-column: 2;
+    margin-top: -7px;
+  }
+  .course-plan-meta {
+    font-size: 11px;
+  }
+  .course-plan-meta span + span::before {
+    margin: 0 7px;
+  }
+  .course-plan-footer .button {
+    padding: 12px 18px;
+  }
+  .course-plan-footer .primary {
+    min-width: 0;
+  }
+}

@@ -1,0 +1,7 @@
+Tool: built-in ImageGen (not API CLI)
+Date: 2026-11-09
+Reference 1: design/assets/jane-character-sheet.png
+Reference 2: design/references/triptalk-four-pages-blue-v2.png
+Output: public/jane/jane-welcome-v1.png (PNG RGBA, 1254 x 1254)
+
+Use case: identity-preserve. Asset type: production transparent PNG single-character illustration for TripTalk web app. Input image 1 is the approved Jane character identity reference; input image 2 is approved UI visual style reference. Create ONLY one Jane, an adult friendly anime female English tutor matching these references: dark brown high ponytail, straight bangs, black framed glasses, milk-blue cardigan over cream top. Waist-up, front three-quarter facing slightly right toward page content, smiling warmly and one hand making a small welcoming wave. Entire hair, ponytail and waving hand fully within frame with generous padding. Match the soft clean anime rendering and face of reference 2, preserve reference 1 identity. Real transparent background alpha, no gradient, no shadow backdrop, no scene, no text, no labels, no sheet, no duplicate poses, no UI. Compact approximately square composition suitable for a left-side hero illustration.

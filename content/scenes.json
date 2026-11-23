@@ -1,0 +1,38 @@
+[
+  {
+    "id": "hotel",
+    "version": 1,
+    "title": "酒店英语",
+    "description": "从抵达前台，到安心住下。",
+    "scope": "旅行中的酒店住宿服务与沟通",
+    "englishTitle": "AT THE HOTEL",
+    "art": "hotel"
+  },
+  {
+    "id": "airport",
+    "version": 1,
+    "title": "机场出行",
+    "description": "从办理乘机手续，到顺利出发。",
+    "scope": "旅客在机场出发、转机和抵达的常用沟通",
+    "englishTitle": "AT THE AIRPORT",
+    "art": "airport"
+  },
+  {
+    "id": "restaurant",
+    "version": 1,
+    "title": "餐厅点餐",
+    "description": "说清口味，享受旅途中的每一餐。",
+    "scope": "旅行中在餐厅用餐的常用沟通，不提供医疗建议",
+    "englishTitle": "AT THE RESTAURANT",
+    "art": "food"
+  },
+  {
+    "id": "transport",
+    "version": 1,
+    "title": "交通问路",
+    "description": "问清路线，自信到达下一站。",
+    "scope": "旅行中的城市交通、购票、乘车和问路沟通",
+    "englishTitle": "GETTING AROUND",
+    "art": "bus"
+  }
+]

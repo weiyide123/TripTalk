@@ -1,0 +1,102 @@
+.copy-action {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  max-width: 100%;
+}
+.copy-button,
+.bookmark-button {
+  width: 28px;
+  height: 28px;
+  min-height: 28px;
+  padding: 0;
+  flex-shrink: 0;
+  border-radius: 6px;
+}
+.copy-button:hover:not(:disabled) {
+  background: var(--primary-soft);
+}
+.copy-status {
+  font-size: 11px;
+  color: #52758d;
+}
+.message-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 4px;
+  color: #81919e;
+}
+.message-actions .text-button {
+  color: inherit;
+}
+.bookmark-button[aria-disabled="true"] {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+/* 显式允许 WebView/Safari 选中文字；不拦截系统复制、剪切和粘贴。 */
+.lesson-shell .speech-bubble,
+.chat-history,
+.answer-panel {
+  -webkit-user-select: text;
+  user-select: text;
+}
+.answer-panel textarea {
+  -webkit-user-select: text;
+  user-select: text;
+  -webkit-touch-callout: default;
+}
+.confirm-dialog {
+  width: min(400px, calc(100% - 32px));
+  max-width: none;
+  max-height: calc(100dvh - 32px);
+  margin: auto;
+  padding: 26px;
+  border: 1px solid var(--border);
+  border-radius: 22px;
+  background: linear-gradient(135deg, #f4faff, var(--surface));
+  color: var(--text);
+  box-shadow: 0 24px 80px #18395830;
+}
+.confirm-dialog::backdrop {
+  background: #253e5740;
+  backdrop-filter: blur(3px);
+}
+.confirm-dialog h2 {
+  font-size: 20px;
+  font-weight: 650;
+}
+.confirm-dialog p {
+  margin-top: 12px;
+  font-size: 14px;
+  line-height: 1.8;
+  color: #627c92;
+}
+.confirm-dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 24px;
+}
+@media (max-width: 380px) {
+  .answer-panel .composer-actions,
+  .answer-panel .help-actions {
+    flex-wrap: wrap;
+  }
+  .answer-panel .help-actions .text-button {
+    white-space: nowrap;
+  }
+  .answer-panel .send-actions {
+    margin-left: auto;
+  }
+  .confirm-dialog {
+    padding: 22px 18px;
+  }
+  .confirm-dialog-actions .button {
+    padding: 11px 14px;
+  }
+}

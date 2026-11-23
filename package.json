@@ -1,0 +1,44 @@
+{
+  "name": "triptalk",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=24.18 <25"
+  },
+  "scripts": {
+    "dev": "next dev --webpack --hostname 127.0.0.1 --port 3000",
+    "build": "next build",
+    "start": "next start --hostname 127.0.0.1 --port 3000",
+    "typecheck": "next typegen && tsc --noEmit",
+    "agent:smoke": "node --env-file-if-exists=.env --import tsx scripts/agent-smoke.ts",
+    "data:check": "node --import tsx scripts/check-data.ts",
+    "voice:check": "node --conditions=react-server --import tsx scripts/check-transcription.ts",
+    "sqlite:check": "node --import tsx scripts/check-sqlite.ts",
+    "sqlite:check-repositories": "node --import tsx scripts/check-sqlite-repositories.ts",
+    "sqlite:import": "node --import tsx scripts/import-json-to-sqlite.ts",
+    "sqlite:init": "node --import tsx scripts/initialize-sqlite.ts",
+    "format": "prettier --write src scripts content .vscode package.json tsconfig.json next.config.ts postcss.config.mjs .prettierrc.json",
+    "format:check": "prettier --check src scripts content .vscode package.json tsconfig.json next.config.ts postcss.config.mjs .prettierrc.json"
+  },
+  "dependencies": {
+    "@openai/agents": "0.21.0",
+    "next": "16.4.5",
+    "openai": "7.52.0",
+    "react": "19.3.1",
+    "react-dom": "19.3.1",
+    "server-only": "0.0.1",
+    "zod": "^4.0.0"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4.3.5",
+    "@types/node": "^24.0.0",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "postcss": "^8.5.32",
+    "prettier": "3.10.1",
+    "tailwindcss": "^4.3.5",
+    "tsx": "4.23.15",
+    "typescript": "~5.9.3"
+  }
+}

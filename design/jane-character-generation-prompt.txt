@@ -1,0 +1,23 @@
+Mode: built-in image_gen
+Reference: references/first-visit-blue.png
+Output: assets/jane-character-sheet.png
+
+Use case: stylized-concept
+Asset type: production character model sheet, truly transparent PNG, for image-to-animation consistency.
+Input image 1: identity and style reference ONLY. Extract the established adult female tutor Jane from this approved blue TripTalk UI, and create one clean character reference sheet. DO NOT reproduce the app UI or background.
+Canvas: high resolution landscape sheet, ideally about 2048x1536 or larger. Entire background and every empty gap must be genuinely TRANSPARENT alpha=0, no white canvas, no checkerboard painted in, no backdrop, no ground shadows, no colored panels. Maintain opaque white parts of eyes, cream shirt, and shoes correctly.
+
+Character identity locked: Jane is a young adult anime woman, friendly fresh approachable tutor, DARK BLACK-BROWN HAIR in a HIGH PONYTAIL, straight BLUNT BANGS just above eyebrows, BLACK rounded-rectangular eyeglass frames with clear lenses and visible warm brown eyes. Ponytail attached near back of crown with a plain dark navy band, extends to about shoulder-blade length with soft waves. No hair clips. Same face, eyeglasses, body proportions, hairline and design across ALL views.
+Outfit: powder/milk-blue open knitted cardigan with cream buttons and ribbed cuffs, cream plain crew-neck shirt exactly inspired by reference. For full-body extension use simple high-waisted dark navy straight-leg ankle trousers and clean ivory low-top sneakers, no accessories, no patterns. Cute adult proportions, about six-and-a-half heads tall, not chibi, no sexualization. Clean 2D animation model-sheet line art, gentle restrained shading, no photorealism, no dramatic lights.
+
+Layout:
+Upper ~65%: THREE equally sized FULL-BODY orthographic views aligned on the same baseline: FRONT neutral gentle smile, SIDE profile facing right, BACK view. All limbs, ponytails, glasses and shoes fully within canvas with generous transparent margins. Relaxed arms slightly separated from torso to clarify silhouette. Same full body scale and costume details. Small dark navy text below each: “FRONT” “SIDE” “BACK”.
+Lower ~35%: SIX separated head-and-shoulders portrait references of exactly same Jane, same head scale and frontal or slight 3/4 angle:
+1 WELCOME: open smile, bright welcoming eyes.
+2 PLAYFUL: gentle wink and teasing smile.
+3 THINKING: thoughtful brows, closed mouth.
+4 SOFT SAD: mild wistful face, no tears.
+5 POUT: mildly annoyed playful pout, never aggressive.
+6 SPEAKING: eyes open, mouth visibly open in a speech shape.
+Small exact navy labels beneath portraits: “WELCOME” “PLAYFUL” “THINKING” “SOFT SAD” “POUT” “SPEAKING”.
+No layout dividers, decorative stars, frame, UI, logos, color swatches or extra text. All figures and labels isolated on actual transparency. Prioritize consistent face, bangs, high ponytail, glasses and cardigan in every view; no merged figures or overlapping silhouettes.
