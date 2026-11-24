@@ -3,6 +3,21 @@
   color: var(--primary);
   font-size: 12px;
 }
+.voice-input .send-actions {
+  gap: 8px;
+  margin-left: auto;
+}
+@media (max-width: 380px) {
+  .voice-input .help-actions {
+    gap: 8px;
+  }
+  .voice-input .composer-actions {
+    gap: 6px;
+  }
+  .voice-input .send-actions {
+    gap: 4px;
+  }
+}
 .voice-input-row {
   display: flex;
   align-items: center;
@@ -10,16 +25,37 @@
   gap: 8px;
   min-height: 32px;
 }
-.voice-start {
+.voice-toggle {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  border-radius: 8px;
-  padding: 6px 8px;
-  margin-left: -8px;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: 12px;
+  color: #3987b7;
+  background: transparent;
+  transition:
+    background 0.15s,
+    border-color 0.15s;
 }
-.voice-start:hover:not(:disabled) {
-  background: var(--primary-soft);
+.voice-toggle:hover:not(:disabled),
+.voice-toggle.is-recording {
+  background: #e6f3fd;
+  border-color: #c9e2f4;
+}
+.voice-toggle:focus-visible {
+  outline: 2px solid #82b4d7;
+  outline-offset: 2px;
+}
+.voice-toggle:disabled {
+  opacity: 0.5;
+}
+.voice-toggle[aria-busy="true"] {
+  opacity: 1;
+  background: #f0f8ff;
 }
 .voice-status {
   flex: 1;
@@ -30,11 +66,6 @@
 }
 .voice-status:empty {
   display: none;
-}
-.voice-stop {
-  min-height: 32px;
-  padding: 6px 10px;
-  font-size: 12px;
 }
 .voice-transcript {
   margin: 8px 0;

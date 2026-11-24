@@ -22,8 +22,6 @@ export const planSchema = generatedPlanSchema.extend({
   id: z.string(),
   questions: z.array(questionSchema).min(8).max(15),
 });
-export type GeneratedPlan = z.infer<typeof generatedPlanSchema>;
-export type DialoguePlan = z.infer<typeof planSchema>;
 export type Question = z.infer<typeof questionSchema>;
 export const visibleQuestionSchema = questionSchema.omit({
   referenceAnswer: true,

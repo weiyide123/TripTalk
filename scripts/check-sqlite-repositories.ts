@@ -12,9 +12,12 @@ import {
 } from "../src/server/storage/database";
 import { initializeSchema } from "../src/server/storage/schema-migrations";
 import { SqliteStore, getStore } from "../src/server/storage/store";
-import { convertJsonSnapshot } from "../src/server/storage/import/convert-json";
-import { importSnapshot } from "../src/server/storage/import/import-snapshot";
-import { readSnapshotRows } from "../src/server/storage/import/snapshot-rows";
+import {
+  createCatalogSnapshot,
+  writeSnapshotToEmptyDatabase,
+} from "../src/server/storage/snapshots/write-snapshot";
+import { readSnapshotRows } from "../src/server/storage/snapshots/snapshot-rows";
+import catalog from "../content/scenes.json";
 import { sqliteFixture } from "./helpers/sqlite-fixture";
 import {
   initialTrainingSession,
@@ -31,11 +34,7 @@ async function main() {
   try {
     initializeSchema(database);
     const source = sqliteFixture();
-    const snapshot = convertJsonSnapshot({
-      ...source,
-      profile: null,
-      sceneData: [],
-    });
+    const snapshot = createCatalogSnapshot(catalog);
     snapshot.scenes.push({
       ...snapshot.scenes[0],
       id: "custom-cafe",
@@ -45,9 +44,9 @@ async function main() {
       art: "generic",
       plan: null,
     });
-    importSnapshot(database, snapshot);
+    writeSnapshotToEmptyDatabase(database, snapshot);
     checkProfile(store, database);
-    const plan = source.sceneData[0].plan!;
+    const plan = source.scenes.find((scene) => scene.id === "hotel")!.plan!;
     const init = { requestId: randomUUID(), sceneId: "hotel" };
     assert.equal(store.catalog.readPlan("hotel"), null);
     assert.equal(store.catalog.findInitialization(init), null);
@@ -407,12 +406,11 @@ async function checkLocks(store: SqliteStore, database: DatabaseSync) {
 }
 
 function checkLegacyRecovery(directory: string) {
-  const source = sqliteFixture("awaiting_continue");
-  const snapshot = convertJsonSnapshot(source);
+  const snapshot = sqliteFixture("awaiting_continue");
   const database = createDatabase(join(directory, "recovery.sqlite"));
   try {
     initializeSchema(database);
-    importSnapshot(database, snapshot);
+    writeSnapshotToEmptyDatabase(database, snapshot);
     const store = new SqliteStore({ database, inFlight: new Set() });
     const session = store.sessions.get(snapshot.sessions[0].id);
     const candidate = structuredClone(session);
@@ -445,12 +443,19 @@ function checkLegacyRecovery(directory: string) {
       store.sessions.commitTurn(session.id, request, candidate),
       saved,
     );
-    const oldSession = Object.values(source.sceneData[0].sessions)[0];
-    const oldTurn = oldSession.turns[0];
+    const oldReceipt = snapshot.receipts.find(
+      (receipt) => receipt.operation === "session-turn",
+    )!;
+    assert.equal(oldReceipt.operation, "session-turn");
+    if (oldReceipt.operation !== "session-turn")
+      throw new Error("Missing fixture receipt");
+    const oldTurn = session.turns.find(
+      (turn) => turn.id === oldReceipt.result.turnId,
+    )!;
     const oldRequest = {
-      requestId: oldTurn.requestId,
-      expectedRevision: oldTurn.revision - 1,
-      action: oldTurn.action,
+      requestId: oldReceipt.requestId,
+      expectedRevision: oldReceipt.result.revision - 1,
+      action: "hint" as const,
       text: "I would like to check in.",
     };
     assert.equal(
@@ -460,7 +465,7 @@ function checkLegacyRecovery(directory: string) {
     assert.ok(
       store.sessions
         .processedRequestIds(session.id)
-        .includes(oldTurn.requestId),
+        .includes(oldReceipt.requestId),
     );
   } finally {
     database.close();

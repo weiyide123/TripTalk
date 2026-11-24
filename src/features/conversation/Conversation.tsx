@@ -10,17 +10,13 @@ import { useConversationSubmission } from "./useConversationSubmission";
 import { PendingMessage, SubmissionNotice } from "./SubmissionStatus";
 import { TranslatableText } from "@/components/TranslatableText";
 import { VoiceInput } from "./VoiceInput";
+import { ReplyGuidance, collectQuestionHints } from "./ReplyGuidance";
 import {
   SentencePlaybackContext,
   SentencePlayButton,
   useSentencePlayback,
 } from "./SentencePlayback";
 
-const HINT_HEADINGS = {
-  keywords: "关键词提示",
-  pattern: "句式提示",
-  example: "参考表达 · 可填入后修改",
-};
 const ACTION_LABELS = {
   answer: "",
   explain: " · 词句解释",
@@ -48,6 +44,7 @@ export function Conversation({ sessionId }: { sessionId: string }) {
     insertTranscript,
   } = useConversationSubmission(sessionId);
   const [voiceBusy, setVoiceBusy] = useState(false);
+  const [hiddenExampleId, setHiddenExampleId] = useState<string | null>(null);
   const playback = useSentencePlayback(
     `${sessionId}:${session?.revision}`,
     voiceBusy,
@@ -109,6 +106,7 @@ export function Conversation({ sessionId }: { sessionId: string }) {
       return;
     setDraft(text);
     setExplainMode(false);
+    setHiddenExampleId(hints.example?.turnId ?? null);
     input.current?.focus();
   }
   const current = session?.currentQuestion;
@@ -122,8 +120,22 @@ export function Conversation({ sessionId }: { sessionId: string }) {
           t.action === "explain") &&
         t.questionId === current?.id,
     ) ?? [];
-  const help = [...currentTurns].reverse().find((t) => t.evaluation?.hint)
-    ?.evaluation?.hint;
+  const hints = collectQuestionHints(currentTurns);
+  const exampleOpen =
+    !!hints.example && hints.example.turnId !== hiddenExampleId;
+  let hintLabel = "给点提示";
+  if (hints.keywords) hintLabel = "再给点提示";
+  if (hints.pattern) hintLabel = "看参考表达";
+  if (hints.example) hintLabel = exampleOpen ? "收起参考表达" : "看参考表达";
+  /** 已生成的参考只切换展示；未生成的下一级仍沿用原求助请求与互斥保护。 */
+  function requestHint() {
+    if (operationBusy || unresolved) return;
+    if (hints.example) {
+      setHiddenExampleId(exampleOpen ? hints.example.turnId : null);
+      return;
+    }
+    void send("hint");
+  }
   const messageSubmission =
     submission &&
     (submission.operation.action === "answer" ||
@@ -268,43 +280,13 @@ export function Conversation({ sessionId }: { sessionId: string }) {
                   className="answer-panel"
                   aria-label="作答区"
                 >
-                  <div className="task-heading">
-                    <span className="task-icon">
-                      <Icon
-                        name="spark"
-                        size={17}
-                      />
-                    </span>
-                    <div>
-                      <span className="eyebrow">试着用英语说</span>
-                      <p>{current?.chineseTask}</p>
-                    </div>
-                  </div>
-                  {help && (
-                    <div className="hint-panel">
-                      <span className="message-author">
-                        {HINT_HEADINGS[help.level]}
-                      </span>
-                      {help.level === "example" ? (
-                        <div className="hint-example">
-                          <p>{help.text}</p>
-                          <button
-                            className="text-button"
-                            onClick={() => fill(help.text)}
-                            disabled={operationBusy || awaiting}
-                          >
-                            填入回答
-                            <Icon
-                              name="arrow"
-                              size={14}
-                            />
-                          </button>
-                        </div>
-                      ) : (
-                        <p>{help.text}</p>
-                      )}
-                    </div>
-                  )}
+                  <ReplyGuidance
+                    task={current?.chineseTask}
+                    hints={hints}
+                    exampleOpen={exampleOpen}
+                    disabled={operationBusy || awaiting || unresolved}
+                    onFill={fill}
+                  />
                   {awaiting && (
                     <div className="continue-panel">
                       <div>
@@ -348,7 +330,8 @@ export function Conversation({ sessionId }: { sessionId: string }) {
                       </label>
                       <div
                         className={
-                          "input-wrap" + (explainMode ? " explain-mode" : "")
+                          "input-wrap integrated-composer" +
+                          (explainMode ? " explain-mode" : "")
                         }
                       >
                         {explainMode && (
@@ -393,58 +376,67 @@ export function Conversation({ sessionId }: { sessionId: string }) {
                         <span className="char-count">
                           {draft.length} / 2000
                         </span>
-                      </div>
-                      <VoiceInput
-                        contextKey={`${sessionId}:${current?.id}:${session.revision}`}
-                        disabled={busy || unresolved}
-                        onBusyChange={changeVoiceBusy}
-                        onTranscript={insertTranscript}
-                      />
-                      <div className="composer-actions">
-                        <div className="help-actions">
-                          <button
-                            className="button soft"
-                            disabled={operationBusy || unresolved}
-                            onClick={() => send("hint")}
-                          >
-                            <Icon
-                              name="bulb"
-                              size={17}
-                            />
-                            {help ? "再给点提示" : "给点提示"}
-                          </button>
-                          <button
-                            className="text-button"
-                            disabled={operationBusy}
-                            onClick={() => {
-                              setExplainMode(!explainMode);
-                              input.current?.focus();
-                            }}
-                          >
-                            {explainMode ? "返回作答" : "解释词句"}
-                          </button>
-                        </div>
-                        <div className="send-actions">
-                          <button
-                            className="button primary"
-                            disabled={
-                              (!draft.trim() && !unresolved) || operationBusy
-                            }
-                            onClick={() => void submitDraft()}
-                          >
-                            {busy ? (
-                              <span className="spinner" />
-                            ) : (
-                              <>
-                                {sendLabel}
+                        <VoiceInput
+                          contextKey={`${sessionId}:${current?.id}:${session.revision}`}
+                          disabled={busy || unresolved}
+                          onBusyChange={changeVoiceBusy}
+                          onTranscript={insertTranscript}
+                          helpActions={
+                            <div className="help-actions">
+                              <button
+                                className="button soft"
+                                disabled={operationBusy || unresolved}
+                                onClick={requestHint}
+                                aria-expanded={
+                                  hints.example ? exampleOpen : undefined
+                                }
+                                aria-controls={
+                                  hints.example ? "reply-reference" : undefined
+                                }
+                              >
                                 <Icon
-                                  name="send"
+                                  name="bulb"
                                   size={17}
                                 />
-                              </>
-                            )}
-                          </button>
-                        </div>
+                                {hintLabel}
+                              </button>
+                              {explainMode && (
+                                <button
+                                  className="text-button"
+                                  disabled={operationBusy}
+                                  onClick={() => {
+                                    setExplainMode(false);
+                                    input.current?.focus();
+                                  }}
+                                >
+                                  返回作答
+                                </button>
+                              )}
+                            </div>
+                          }
+                          sendAction={
+                            <button
+                              className="button primary composer-send"
+                              aria-label={sendLabel}
+                              title={sendLabel}
+                              disabled={
+                                (!draft.trim() && !unresolved) || operationBusy
+                              }
+                              onClick={() => void submitDraft()}
+                            >
+                              {busy ? (
+                                <span className="spinner" />
+                              ) : (
+                                <>
+                                  <Icon
+                                    name={unresolved ? "refresh" : "arrowUp"}
+                                    size={17}
+                                  />
+                                </>
+                              )}
+                            </button>
+                          }
+                        />
                       </div>
                     </>
                   )}
@@ -531,6 +523,7 @@ function ConversationTurn({ turn }: { turn: SessionView["turns"][number] }) {
   );
 }
 
+/** 仅按已有教学结果区分鼓励、表达建议和重答，不改变任务推进。 */
 function TutorFeedback({
   evaluation,
 }: {
@@ -541,14 +534,37 @@ function TutorFeedback({
     evaluation.verdict === "correct" &&
     evaluation.canContinue &&
     !evaluation.correctedAnswer;
+  const needsRetry =
+    evaluation.learnerIntent === "answer" &&
+    !evaluation.canContinue &&
+    (evaluation.verdict === "needs_correction" ||
+      evaluation.verdict === "uncertain");
+  let title = "学习提示";
+  if (evaluation.canContinue) title = "表达小建议";
+  if (needsRetry) title = "再试一次";
+  let className = "tutor-note tutor-note-card";
+  if (isPositive) className = "tutor-note tutor-note-positive";
+  else if (needsRetry) className += " tutor-note-retry";
   return (
-    <div className="tutor-note">
-      <span className="tutor-note-badge">
-        <Icon
-          name={isPositive ? "thumbsUp" : "sparkles"}
-          size={15}
-        />
-      </span>
+    <div className={className}>
+      {isPositive ? (
+        <span className="tutor-note-badge">
+          <Icon
+            name="thumbsUp"
+            size={15}
+          />
+        </span>
+      ) : (
+        <div className="tutor-note-heading">
+          <span className="tutor-note-badge">
+            <Icon
+              name={needsRetry ? "pencil" : "sparkles"}
+              size={16}
+            />
+          </span>
+          <span>{title}</span>
+        </div>
+      )}
       <div className="tutor-note-content">
         <span className="sr-only">
           {isPositive ? "Jane 的鼓励：" : "Jane 的学习提示："}

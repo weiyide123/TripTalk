@@ -32,6 +32,7 @@ export async function transcribeAudio(audio: File, signal: AbortSignal) {
       timeout: 30_000,
       maxRetries: 0,
     });
+
     const result = await client.audio.transcriptions.create(
       {
         file: audio,

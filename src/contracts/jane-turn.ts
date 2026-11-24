@@ -52,4 +52,3 @@ export const generatedEvaluationSchema = evaluationSchema.extend({
   continuation: continuationSchema.required().nullable(),
 });
 export type Evaluation = z.infer<typeof evaluationSchema>;
-export type Continuation = z.infer<typeof continuationSchema>;

@@ -3,7 +3,6 @@ import type { TrainingSession } from "../../src/contracts/training-session";
 import type { LearningEvent } from "../../src/contracts/learning-event";
 import type { TurnRequest } from "../../src/contracts/requests";
 import type { Scene, SceneTopic } from "../../src/contracts/scene";
-import { convertJsonSnapshot } from "../../src/server/storage/import/convert-json";
 import { sqliteFixture } from "./sqlite-fixture";
 
 // 纯离线候选，不连接模型。测试仓库是否接收/拒绝指定业务结果。
@@ -11,7 +10,7 @@ export function initialTrainingSession(
   scene: Scene,
   topic: SceneTopic,
 ): TrainingSession {
-  const source = convertJsonSnapshot(sqliteFixture()).sessions[0];
+  const source = sqliteFixture().sessions[0];
   const now = new Date().toISOString();
   const sessionId = randomUUID();
   const first = source.planSnapshot.questions[0];

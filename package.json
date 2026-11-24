@@ -16,7 +16,6 @@
     "voice:check": "node --conditions=react-server --import tsx scripts/check-transcription.ts",
     "sqlite:check": "node --import tsx scripts/check-sqlite.ts",
     "sqlite:check-repositories": "node --import tsx scripts/check-sqlite-repositories.ts",
-    "sqlite:import": "node --import tsx scripts/import-json-to-sqlite.ts",
     "sqlite:init": "node --import tsx scripts/initialize-sqlite.ts",
     "format": "prettier --write src scripts content .vscode package.json tsconfig.json next.config.ts postcss.config.mjs .prettierrc.json",
     "format:check": "prettier --check src scripts content .vscode package.json tsconfig.json next.config.ts postcss.config.mjs .prettierrc.json"

@@ -51,10 +51,6 @@ export function AppShell({
             复习与错题 <span className="soon-label">即将开放</span>
           </button>
         </nav>
-        <span className="local-badge">
-          <span />
-          本地学习空间
-        </span>
       </header>
       <section
         className="jane-hero"

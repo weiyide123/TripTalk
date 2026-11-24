@@ -1,6 +1,6 @@
 # SQLite 接入导读与迁移方案
 
-2026-11-19 · P1.5 SQLite 已接入网页与服务，现有数据已备份、导入和安装。离线回归、隔离构建、测试页面读取通过；用户真实试聊待重启后确认。
+2026-11-24 · SQLite 已接入并获用户验收。旧 JSON 转换命令与契约已退役；新安装、备份和当前数据兼容继续保留。第 8 节的 JSON 转换流程仅记录已完成的历史，不是当前操作指引。
 
 本版决定：内置/自定义场景及其课程生成信息统一存入 `scenes`，不再独立建 `scene_plans`；Jane 实际提问与回答等统一存入 `turns`；新表不保存 `action=continue`；所有需要请求去重的业务共用 `operation_receipts`。共 **6 张业务表 + 1 张结构版本表**。这替代上一版独立 `session_questions`、专用 `creation_requests` 和继续保留 continue 事件的方案，不额外增加另一张“统一事件表”。
 
@@ -244,13 +244,13 @@ WAL 是 SQLite 的一种日志模式：运行时可能出现 `triptalk.sqlite-wa
 | [views.ts](../src/server/services/views.ts) | 从存储记录生成 HomeView/SessionView，过滤内部字段 | 页面契约与表结构解耦，迁移不改变公开内容 |
 | 原 scene-rules.ts | 同场景保留一个未完成会话；重练不重复累计主题完成数 | 数据库约束与聚合查询必须遵守同一语义 |
 | [lesson-state.ts](../src/server/services/lesson-state.ts) | 一次回答可追加两条事件、调整状态；提示与回答不同 | 保留完整事件含义，不退化成只保存聊天文本 |
-| [旧 Session 契约](../src/contracts/legacy/session.ts) | 业务已有配置/计划快照和实际问题记录 | 表设计基于这些职责，不从截图重新发明数据结构 |
+| 旧 Session 契约（已退役） | 业务已有配置/计划快照和实际问题记录 | 表设计基于这些职责，不从截图重新发明数据结构 |
 
 JSON 方案已经有可靠性保护，不是“用了文件就不可靠”。当前数据量也没有证明存在性能瓶颈。现在迁移的主要价值是更直接的查询、局部写入和后续跨会话复习检索，而不是承诺页面或模型回复马上变快。
 
 ### 4.2 先列出真实读写，不按页面凑表
 
-下表对应 **P1.5 目标设计，尚未落地**。读取列直接标明“需要的信息 → 来源表/字段”；写入列只列业务数据变化，不表示每次操作都会修改所有这些表。第 5 节解释完整字段，第 7.1 节核对提交与恢复行为。
+下表对应 **已落地的 SQLite 读写设计**。读取列直接标明“需要的信息 → 来源表/字段”；写入列只列业务数据变化，不表示每次操作都会修改所有这些表。第 5 节解释完整字段，第 7.1 节核对提交与恢复行为。
 
 | 用户操作 / 系统操作 | 读取什么、来自哪张表 | 写入哪些表 | 写入边界与说明 |
 | --- | --- | --- | --- |
@@ -532,7 +532,7 @@ scope_id 和 result_json 是有限类型的逻辑引用，不能用一个 SQL �
 | session-records.ts / session-write-rules.ts / learning-progress.ts | 会话行映射、提交约束、摘要查询；仓库内部使用，不向 service 暴露任意 SQL 写入 |
 | operation-receipts.ts | 公共幂等编号/摘要/结果核对，回执只在业务事务内写入 |
 | catalog-repository.ts / content/scenes.json | 统一数据库目录入口；JSON 只用于显式初始化/导入，原 lessons/scenes.ts 已删除 |
-| contracts/learning-event.ts / training-session.ts / training-session-integrity.ts / operation-receipt.ts | 已实现统一事件、独立回执和历史关联校验；旧契约移至 contracts/legacy，仅供离线导入 |
+| contracts/learning-event.ts / training-session.ts / training-session-integrity.ts / operation-receipt.ts | 已实现统一事件、独立回执和历史关联校验；旧 JSON 契约已删除；既有 SQLite 历史字段兼容保留 |
 | lesson-state.ts / turn.ts / create-session.ts | 首题写 question；通过回答直接追加 question/completed；共用幂等校验，不再生成 continue 事件 |
 | scene-plan.ts / requests.ts / useHome.ts | 初始化课程增加并暂存 requestId，重试复用完整操作；课程与回执原子提交 |
 | session-selectors.ts / agents/context.ts | 问题从 question 事件建立索引；教学类型显式判断，不再用 action != continue；保持模型输入含义 |
@@ -616,6 +616,8 @@ JsonFile 固定命令的业务保护不能随底层删除；移入仓库事务�
 
 ## 8. 迁移实施顺序
 
+本节记录 2026-11-19 已完成的 JSON 切换过程。一次性导入工具在验收后退役；当前安装仅使用 sqlite:init，恢复从 SQLite 备份进行。不要照此历史流程重新覆盖现有学习库。
+
 ### 第一步：固定基线，不碰正式库
 
 记录用户已基本完成 P1 验收；补齐当前 schema 缓存疑点的复现/重启验证，不把旧故障误算成数据库迁移回归。盘点当前文件版本、ID 冲突、每场景活跃会话数量、主题归属、历史顺序、原始与可见问题。
@@ -663,7 +665,7 @@ sequence 重新描述实际显示顺序，不用于重算 revision。旧回执�
 6. 导入目标必须是不存在/全新空库。重复运行对已导入或非空目标拒绝写入，报告“目标已存在”；失败候选库保留诊断后换新目标重做，不 `INSERT OR REPLACE` 覆盖历史、不清空正式库。
 7. 导入后重新检查源清单哈希，发现源变化就拒绝切换。候选库完成 checkpoint、关闭所有连接并验证后才安装到正式路径；不移动仍带未合并 WAL 的活动主文件，不覆盖已有正式库。
 
-已提供 `npm run sqlite:import -- --source <备份数据目录> --catalog <场景种子路径> --target <全新候选库路径>`：目标必须在源目录之外且不存在；它仅生成、校验候选库，不停服、不安装、不删除源文件。已用当前 JSON 只读输入在系统临时目录验证；正式导入仍须使用停写后的备份并确认操作窗口。本次切换已另行完成哈希复核与候选安装；此命令本身仍不负责安装或回退。
+当时使用 sqlite:import 生成全新候选、检查源哈希并完成核对后安装；该命令现已退役。原 JSON 及当时的代码归档仍保留，不应重新导入来覆盖切换后新增的学习记录。
 
 ### 第四步：切换与验收
 
@@ -677,7 +679,7 @@ sequence 重新描述实际显示顺序，不用于重算 revision。旧回执�
 - 切换后尚无新增写入：停止服务，可回到匹配的 JSON 版代码和备份；确认哈希/记录仍一致。
 - 切换后已有新记录：优先修复 SQLite 版；若必须回 JSON，需要停写、导出全部最新数据、按旧契约验证和比对后再切换。不能直接恢复切换前 JSON；未具备导出验证工具时不得承诺无损回滚。
 - 活动库备份使用驱动支持的 Online Backup 或经过验证的 VACUUM INTO，恢复先在新路径验库，不覆盖活动库。参见 [SQLite 备份说明](https://www.sqlite.org/backup.html)。
-- 验收后删除不再被运行时调用的 JsonFile 路径，保留专用导入能力与备份，不长期维护两套写入后端。
+- 验收后删除不再被运行时调用的 JsonFile 路径，在验收后退役一次性导入工具，保留备份与当前格式快照校验，不长期维护两套写入后端。
 
 ## 9. 迁移与回归清单
 
@@ -721,12 +723,12 @@ sequence 重新描述实际显示顺序，不用于重算 revision。旧回执�
 
 答案分别在第 1、2、3、8 节。无需先学 ORM、数据库服务器运维或复杂 SQL 优化。具体表字段、连接参数与 DDL 可在实现相应模块时再逐段看。
 
-下一步建议按三个交付切片推进：
+当时按三个交付切片推进（现均已完成）：
 
 1. **契约与存储底座**：新事件/回执契约、旧数据转换样例、Node 驱动、建表及临时库约束检查。
 2. **仓库与调用链调整**：目录查询、事务、公共幂等、事件展示、初始化请求与恢复回归，仍不切正式数据。
 3. **正式迁移**：选停写窗口，备份/导入/比对/切换和恢复演练。
 
-三个工程切片已完成：网页/服务只读写 SQLite，旧 JSON 留档。正式数据导入 4 场景、3 会话、39 事件、39 回执，源哈希不变。备份在 data/backups/sqlite-cutover-HnmTlw（含源 JSON、种子、候选库、JSON 版代码归档）。运行时没有自动恢复入口。用户重启后试聊确认，再推进 P1.6。
+三个工程切片已完成：网页/服务只读写 SQLite，旧 JSON 留档。正式数据导入 4 场景、3 会话、39 事件、39 回执，源哈希不变。备份在 data/backups/sqlite-cutover-HnmTlw（含源 JSON、种子、候选库、JSON 版代码归档）。运行时没有自动恢复入口。用户已确认试聊正常，P1.6 实现与验收状态见开发节奏。
 
-全新安装使用 `npm run sqlite:init -- --target data/triptalk.sqlite --catalog content/scenes.json`，目标必须不存在；已有旧数据必须走导入，不用空库代替。`data:check` 验证服务编排；`sqlite:check-repositories` 验证仓库；`sqlite:check -- --source data` 只读留档 JSON，不检查切换后的新记录。
+全新安装使用 `npm run sqlite:init -- --target data/triptalk.sqlite --catalog content/scenes.json`，目标必须不存在，不用空库代替已有学习数据。`data:check` 验证服务编排；`sqlite:check-repositories` 验证仓库；`sqlite:check` 验证当前快照、约束与备份恢复，全部只用临时库。已移除 --source/--catalog 旧 JSON 核对选项。

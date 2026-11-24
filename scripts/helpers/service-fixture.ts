@@ -4,8 +4,10 @@ import { join } from "node:path";
 import { randomUUID } from "node:crypto";
 import { createDatabase } from "../../src/server/storage/database";
 import { initializeSchema } from "../../src/server/storage/schema-migrations";
-import { importSnapshot } from "../../src/server/storage/import/import-snapshot";
-import { convertJsonSnapshot } from "../../src/server/storage/import/convert-json";
+import {
+  createCatalogSnapshot,
+  writeSnapshotToEmptyDatabase,
+} from "../../src/server/storage/snapshots/write-snapshot";
 import { getStore } from "../../src/server/storage/store";
 import { sqliteFixture } from "./sqlite-fixture";
 import { initialTrainingSession } from "./sqlite-repository-fixture";
@@ -18,19 +20,15 @@ export async function serviceFixture() {
   const source = sqliteFixture();
   try {
     initializeSchema(database);
-    importSnapshot(
-      database,
-      convertJsonSnapshot({
-        ...source,
-        profile: null,
-        sceneData: [],
-      }),
+    const catalog = source.scenes.map(
+      ({ origin: _, position: __, plan: ___, ...scene }) => scene,
     );
+    writeSnapshotToEmptyDatabase(database, createCatalogSnapshot(catalog));
   } finally {
     database.close();
   }
   const store = getStore(file);
-  const plan = source.sceneData[0].plan!;
+  const plan = source.scenes.find((scene) => scene.id === "hotel")!.plan!;
   store.catalog.initializeCourse(
     { requestId: randomUUID(), sceneId: "hotel" },
     plan,

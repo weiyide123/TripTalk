@@ -4,6 +4,7 @@ import {
   type SqliteSnapshot,
 } from "@/contracts/sqlite-snapshot";
 
+/** 写入已校验快照的关联记录；调用者负责空库检查与外层事务，不作为业务更新入口。 */
 export function insertSnapshotRows(
   database: DatabaseSync,
   snapshot: SqliteSnapshot,
@@ -68,6 +69,7 @@ export function insertSnapshotRows(
   }
 }
 
+/** 按会话、事件顺序插入练习历史，保留原始身份、版本与内容。 */
 function insertSessions(database: DatabaseSync, snapshot: SqliteSnapshot) {
   const sessionInsert = database.prepare(`INSERT INTO sessions
     (id, scene_id, topic_id, mode, status, revision, current_question_id,
@@ -108,6 +110,7 @@ function insertSessions(database: DatabaseSync, snapshot: SqliteSnapshot) {
   }
 }
 
+/** 读取并校验完整当前格式快照，仅供离线核对；活动库需由调用者提供一致性读事务。 */
 export function readSnapshotRows(database: DatabaseSync): SqliteSnapshot {
   const profile = database.prepare("SELECT * FROM profile WHERE id = 1").get();
   const scenes = database

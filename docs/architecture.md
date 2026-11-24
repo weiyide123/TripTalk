@@ -35,7 +35,7 @@ views 组装公开数据，首页直接读取摘要；session-selectors 计算�
 
 - 单应用绑定 127.0.0.1:3000。浏览器不能导入 server；核心服务不依赖 NextRequest/NextResponse，CLI 可复用。
 - HTTP/数据库路由使用 Node runtime，不使用 Edge、静态导出或无持久磁盘部署。
-- import/build 不调用模型、不打开或创建正式数据。运行时 getStore 只打开已安装库；建库/DDL/导入是显式 CLI 操作。
+- import/build 不调用模型、不打开或创建正式数据。运行时 getStore 只打开已安装库；建库/DDL 是显式 CLI 操作。
 - 共享 globalThis 仅保存连接和在途锁，仓库每次重新装配，热更新不复用旧业务闭包。
 - 页面动态读取；业务响应 Cache-Control: no-store。普通 GET 不更新偏好或进度。
 - Next 从项目 .env 读取配置，CLI 按命令显式加载；key、模型诊断和完整对话不输出到浏览器/日志。
@@ -55,13 +55,15 @@ views 组装公开数据，首页直接读取摘要；session-selectors 计算�
 - operation_receipts 按操作作用域统一幂等，与业务更新同事务。sequence 是事件顺序，revision 是一次提交的版本，两者分开。
 - 模型调用前先查回执/版本；调用在事务外。事务内重查回执/准入/版本，追加事件、更新允许字段、写成功回执；失败整体回滚。
 - WAL + FULL 同步、外键和唯一约束、有限 busy timeout。读聚合使用短快照，禁止事务内 await 或网络调用。仅支持同机单服务，不宣称多机多写。
-- 首次显式初始化或导入；版本不匹配拒绝运行，不悄悄升级、重建或退回 JSON。
-- 正式 SQLite 已接线并完成旧记录导入；旧 JSON 与对应运行时代码留备份，旧文件运行时读写代码已移除。
+- 首次显式初始化；版本不匹配拒绝运行，不悄悄升级、重建或退回 JSON。
+- 正式 SQLite 已接线并完成旧记录导入；旧 JSON 与对应运行时代码留备份，旧文件运行时读写代码、一次性导入命令与旧契约已移除。新安装与离线回归直接使用当前数据结构。
 - 活动库备份须用 Online Backup 等安全方式；不能只复制主文件忽略 WAL。切换后有新记录时，旧 JSON 不是无损回滚方案。
 
 恢复、备份和数据转换的唯一操作说明见 [SQLite 导读第 8 节](sqlite-migration-guide.md#8-迁移实施顺序)，当前检查结果见开发节奏。
 
 ## 6. 录音输入与句子播放（P1.6）
+
+本节维护技术边界；逐函数实现和基础概念见[录音输入与句子播放导读](voice-input-and-playback.md)。
 
 ```text
 麦克风 → MediaRecorder 录制完毕 → Next.js 转写接口 → 云端语音转文字

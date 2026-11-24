@@ -4,7 +4,7 @@ import { evaluationSchema } from "./jane-turn";
 export type Feedback = z.infer<typeof feedbackSchema>;
 export type ModelCall = z.infer<typeof modelCallSchema>;
 
-// 教学内容契约与存储形式无关；JSON 和 SQLite 交付切片共用同一份定义。
+// 教学反馈与模型调用信息共用此契约，不依赖数据库物理列结构。
 export const feedbackSchema = evaluationSchema
   .omit({
     continuation: true,

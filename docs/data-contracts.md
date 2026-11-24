@@ -159,7 +159,7 @@ MutationResult={session,receipt}；创建响应 receipt=null。教学回执含 r
 
 schema_migrations 保存已执行 SQL 的版本和校验和，旧迁移不可改，新结构追加版本。数据库缺失或版本不匹配时明确报错，不自动创建空库或读取旧 JSON。
 
-旧 JSON 契约只在 contracts/legacy 和离线导入入口保留。首问补 question，旧 continue 转成实际 question/completed；原事件 ID、内容、回执编号和版本保留。待继续不在导入时自动推进。导入必须是全新候选库；检查源指纹、完整性/外键及完整业务快照后才安装。
+旧 JSON 已完成转换，导入命令与旧契约已退役；转换规则作为历史保留在 SQLite 导读。全新安装直接校验场景种子，离线检查直接构造当前格式快照。既有记录缺失翻译、创建回执时间可空以及待继续恢复的语义不变，不因删除转换器而收紧读取规则。
 
 备份恢复见 [SQLite 导读第 8 节](sqlite-migration-guide.md#8-迁移实施顺序)。运行中的 WAL 数据库不能只复制主文件；切换后产生新记录时，不能用旧 JSON 直接回滚。
 

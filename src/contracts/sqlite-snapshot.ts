@@ -4,7 +4,7 @@ import { sceneSchema, scenePlanSchema } from "./scene";
 import { trainingSessionSchema } from "./training-session";
 import { operationReceiptSchema } from "./operation-receipt";
 
-// 离线导入/备份核对使用完整快照；页面仓库不得为一次查询加载此聚合。
+// 显式安装/离线核对使用完整快照；页面仓库不得为一次查询加载此聚合。
 export const sqliteSnapshotSchema = z
   .object({
     profile: profileSchema.nullable(),

@@ -105,18 +105,13 @@ async function evaluateAnswer(candidate: TrainingSession, input: TurnRequest) {
   const started = Date.now();
 
   const content = teachingContext(candidate, input);
-  console.log("11111111:");
-  console.log("content:", content);
-  console.log("11111111:end");
 
   const result = await createJaneRunner(config.apiKey, 60_000).run(
     createJaneTeachingAgent(config.model),
     JSON.stringify(content),
     { maxTurns: 1 },
   );
-  console.log("11111111", result, "result:", result.finalOutput);
   const parsed = generatedEvaluationSchema.safeParse(result.finalOutput);
-  console.log("result: over", parsed);
   if (!parsed.success)
     throw new AppError(
       "AGENT_OUTPUT_INVALID",

@@ -29,6 +29,7 @@ TripTalk 是 Next.js 全栈项目：浏览器与 API 同仓库，Agent 在服务
 | src/features/home/useHome.ts | 首页加载、偏好、初始化/创建请求编号暂存、课程弹窗和导航 |
 | src/features/conversation/useConversationSubmission.ts | 草稿、乐观消息、发送锁、失败重试及回执核对 |
 | src/features/conversation/Conversation.tsx | 按统一事件展示题目与教学结果；hint 只展示在输入框上方 |
+| src/features/conversation/ReplyGuidance.tsx | 汇总当前题各级最新提示，轻量展示目标/关键词/句式与可折叠参考；不发请求或写数据 |
 | src/lib/api.ts | 拼接 /api、fetch、解析安全错误；不访问模型或数据库 |
 | src/server/services/scene-plan.ts | 首次生成 3–8 个主题；已有目录复用 |
 | src/server/services/create-session.ts | 检查主题准入、生成 8–15 问计划、构造首问事件 |
@@ -49,18 +50,18 @@ TripTalk 是 Next.js 全栈项目：浏览器与 API 同仓库，Agent 在服务
 | src/server/storage/database.ts | 安全路径、连接设置、同步短事务、完整性检查 |
 | src/server/storage/schema-migrations.ts、migrations/ | 显式结构升级和 SQL 校验和；请求不会自动建表 |
 | src/contracts/ | 模型输出、请求、训练事件、会话、回执及 DTO 契约 |
-| src/contracts/legacy/、src/server/storage/import/ | 仅用于旧 JSON 离线导入，不参与网页运行 |
+| src/server/storage/snapshots/ | 当前格式快照与场景种子校验，只用于显式安装和离线核对 |
 
 ## 3. 数据位置、文件创建和写入职责
 
-正式数据在 `DATA_DIR/triptalk.sqlite`，默认 `data/triptalk.sqlite`。全新安装由 sqlite:init 创建；已有 JSON 由 sqlite:import 生成候选，经校验后安装。GET、getStore 和构建过程均不会创建空库。
+正式数据在 `DATA_DIR/triptalk.sqlite`，默认 `data/triptalk.sqlite`。全新安装由 sqlite:init 创建：读取种子 → createCatalogSnapshot 校验 → createDatabase → initializeSchema → writeSnapshotToEmptyDatabase。旧 JSON 导入命令已退役。GET、getStore 和构建过程均不会创建空库。
 
 - SQLite 是权威数据。scenes 保存目录，scene_topics 保存主题，sessions 保存练习状态，turns 保存学习事件，operation_receipts 保存成功操作编号，profile 保存偏好。
 - React state 是当前挂载组件的展示副本。切页会卸载，返回时重新请求数据。
 - sessionStorage 只保存草稿和未确认请求；不是进度数据库。初始化目录也保留完整 requestId/sceneId 以便重试。
 - globalThis.triptalkSqliteResources 位于 Node 进程，缓存连接与在途锁，不缓存学习对象。浏览器访问不到它。getStore 每次组装当前版本的仓库，避免热更新继续使用旧校验器。
 - 仓库读取的是独立快照；修改返回对象不会改数据库。必须调用具名方法提交，通过 SQL 才写入磁盘。
-- 原 JSON 及备份保留但不再读写；没有双写或失败时退回 JSON 的逻辑。
+- 原 JSON 在 backups 中留档，不参与运行；没有双写或失败时退回 JSON 的逻辑。
 
 ## 4. 完整用户操作链路
 
@@ -102,12 +103,15 @@ GET /api/sessions/:sessionId → getSessionView → sessions.readWithReceipts。
 ### 4.5 求助、完成和恢复
 
 - hint/explain 仍调用教学 Agent 并保存事件，不推进。提示等级由同题已有求助记录决定；hint 不新增可见聊天气泡。
+- Conversation 先按 currentQuestion.id 筛选教学事件，ReplyGuidance 按提示级别保留最新内容，关键词与句式不互相覆盖。已有完整参考的展开/收起仅更新本地展示状态，填入确认后折叠并聚焦输入，不新增求助事件；请求未获取的下一级仍走原提交链路。
 - 最后一题通过后追加 completed，保存结束语，session 状态变为 topic_completed。首页按已完成 topicId 去重计算进度。
 - 旧 awaiting_continue 记录仍可调用 /continue 恢复，直接消费已保存内容，不调用模型，只追加 question/completed；新表不保存 continue。
 - 刷新时先 GET 核对 processedRequestIds。结果未知不能擅自认定失败；同编号/原内容重试不会重复提交。切换前的请求编号也已迁入回执表。
 - 点击中文释义、复制、收藏占位不写库；问题翻译从 question 事件读取，10 秒关闭，不临时调用模型。
 
 ### 4.6 录音输入与句子播放
+
+本节只保留整体链路；技术概念、具体 await、回调与取消清理见[录音输入与句子播放导读](voice-input-and-playback.md)。
 
 录音链路：`VoiceInput` → `useVoiceInput.start()` → `audio-recording.startRecording()` 请求麦克风并收集内存 Blob → 停止后 POST /api/transcriptions → `readAudioUpload()` 校验 → `transcribeAudio()` 调用文件转写 → `{ text }` → `useConversationSubmission.insertTranscript()` 追加到**最新**草稿。用户手动发送后才进入 4.4 的学习提交链，之前不写 SQLite、不更新进度。
 
@@ -124,7 +128,7 @@ GET /api/sessions/:sessionId → getSessionView → sessions.readWithReceipts。
 | npm run data:check | 模拟 SDK 返回，运行真实服务和临时 SQLite；自动推进、求助、重试与错误分类 |
 | npm run voice:check | 模拟上游 fetch，检查上传、转写边界与草稿合并；不验证真实声学质量 |
 | npm run sqlite:check-repositories | 仓库准入、历史不可改、事务故障回滚、锁、恢复 |
-| npm run sqlite:check | 旧格式转换、约束、重开、备份恢复；--source data 只读旧 JSON 核对 |
+| npm run sqlite:check | 种子校验、当前快照读写、约束、重开与备份恢复；只用临时库 |
 | npm run typecheck / format:check / build | 类型、排版与构建，不调用模型 |
 
 真实模型质量与代理连通性仍需用户试聊；这些离线检查不代替真实调用验收。

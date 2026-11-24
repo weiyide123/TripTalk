@@ -32,7 +32,6 @@ import {
   currentQuestion,
 } from "../src/server/services/session-selectors";
 import { teachingContext } from "../src/server/agents/context";
-import { convertJsonSnapshot } from "../src/server/storage/import/convert-json";
 import { sqliteFixture } from "./helpers/sqlite-fixture";
 import { serviceFixture } from "./helpers/service-fixture";
 import { checkTurnErrors } from "./helpers/check-turn-errors";
@@ -148,7 +147,7 @@ function checkStateRules(fresh: TrainingSession) {
   );
 
   for (const state of ["awaiting_continue", "topic_completed"] as const) {
-    const imported = convertJsonSnapshot(sqliteFixture(state)).sessions[0];
+    const imported = sqliteFixture(state).sessions[0];
     if (state === "awaiting_continue") {
       const revision = imported.revision;
       applyContinue(imported, request(imported, "continue"));

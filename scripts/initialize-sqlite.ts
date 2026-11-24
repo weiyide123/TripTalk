@@ -3,10 +3,12 @@ import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import { createDatabase } from "../src/server/storage/database";
 import { initializeSchema } from "../src/server/storage/schema-migrations";
-import { convertJsonSnapshot } from "../src/server/storage/import/convert-json";
-import { importSnapshot } from "../src/server/storage/import/import-snapshot";
+import {
+  createCatalogSnapshot,
+  writeSnapshotToEmptyDatabase,
+} from "../src/server/storage/snapshots/write-snapshot";
 
-// 全新安装专用：目标必须不存在；有旧学习记录时应使用 sqlite:import。
+/** 全新安装专用：先校验种子，再独占创建目标；拒绝覆盖已有数据库。 */
 async function main() {
   const { values } = parseArgs({
     options: {
@@ -22,23 +24,17 @@ async function main() {
   const catalog: unknown = JSON.parse(
     await readFile(resolve(values.catalog), "utf8"),
   );
-  if (!Array.isArray(catalog) || !catalog.length)
-    throw new Error("Scene catalog must be a non-empty array");
-  const snapshot = convertJsonSnapshot({
-    catalog,
-    profile: null,
-    sceneData: [],
-  });
+  const snapshot = createCatalogSnapshot(catalog);
   const database = createDatabase(resolve(values.target));
   try {
     initializeSchema(database);
-    importSnapshot(database, snapshot);
+    writeSnapshotToEmptyDatabase(database, snapshot);
     database.exec("PRAGMA wal_checkpoint(TRUNCATE)");
     console.log(
       JSON.stringify({
         event: "sqlite_initialized",
         target: resolve(values.target),
-        scenes: catalog.length,
+        scenes: snapshot.scenes.length,
       }),
     );
   } finally {

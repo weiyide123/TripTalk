@@ -1,9 +1,11 @@
 import assert from "node:assert/strict";
 import { backup } from "node:sqlite";
-import { mkdtemp, stat, open } from "node:fs/promises";
+import { mkdtemp, stat, open, writeFile } from "node:fs/promises";
+import { spawnSync } from "node:child_process";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
-import { parseArgs, isDeepStrictEqual } from "node:util";
+import { parseArgs } from "node:util";
+import catalog from "../content/scenes.json";
 import {
   createDatabase,
   openDatabase,
@@ -14,26 +16,24 @@ import {
   initializeSchema,
   assertSchemaVersion,
 } from "../src/server/storage/schema-migrations";
-import { convertJsonSnapshot } from "../src/server/storage/import/convert-json";
-import { readJsonSource } from "../src/server/storage/import/read-json-source";
 import {
-  importSnapshot,
+  createCatalogSnapshot,
+  writeSnapshotToEmptyDatabase,
   assertEquivalentSnapshot,
-} from "../src/server/storage/import/import-snapshot";
-import { readSnapshotRows } from "../src/server/storage/import/snapshot-rows";
+} from "../src/server/storage/snapshots/write-snapshot";
+import { readSnapshotRows } from "../src/server/storage/snapshots/snapshot-rows";
 import { sqliteSnapshotSchema } from "../src/contracts/sqlite-snapshot";
 import { trainingSessionSchema } from "../src/contracts/training-session";
 import type { SqliteSnapshot } from "../src/contracts/sqlite-snapshot";
-import type { Session } from "../src/contracts/legacy/session";
 import { sqliteFixture } from "./helpers/sqlite-fixture";
 import { SqliteStore } from "../src/server/storage/store";
 
 // 仅临时目录；不加载 .env，不调用模型，不修改 DATA_DIR。
 async function main() {
-  const { values } = parseArgs({
-    options: { source: { type: "string" }, catalog: { type: "string" } },
-  });
+  parseArgs({ options: {} });
+  checkCatalogSeeds();
   const directory = await mkdtemp(join(tmpdir(), "triptalk-sqlite-check-"));
+  await checkInitializationCommand(directory);
   assert.throws(() => openDatabase(join(directory, "missing.sqlite")));
   assert.throws(
     () => createDatabase(resolve("public/..private/test.sqlite")),
@@ -46,10 +46,8 @@ async function main() {
     "awaiting_continue",
     "topic_completed",
   ] as const) {
-    const input = sqliteFixture(status);
-    const snapshot = convertJsonSnapshot(input);
-    const original = Object.values(input.sceneData[0].sessions)[0];
-    checkConversion(original, snapshot);
+    const snapshot = sqliteFixture(status);
+    checkHistoricalFields(snapshot);
     checkContractRejections(snapshot);
     const file = join(directory, status + ".sqlite");
     const database = createDatabase(file);
@@ -65,12 +63,8 @@ async function main() {
           .get()?.count,
         7,
       );
-      const empty = convertJsonSnapshot({
-        catalog: input.catalog,
-        profile: null,
-        sceneData: [],
-      });
-      importSnapshot(database, empty);
+      const empty = createCatalogSnapshot(catalog);
+      writeSnapshotToEmptyDatabase(database, empty);
       assert.equal(
         database.prepare("SELECT count(*) AS count FROM profile").get()?.count,
         0,
@@ -78,13 +72,14 @@ async function main() {
       // 仅此临时夹具清空种子，正式导入函数没有清表能力。
       database.exec("DELETE FROM scenes");
       checkRollback(database, snapshot);
-      importSnapshot(database, snapshot);
+      writeSnapshotToEmptyDatabase(database, snapshot);
       assertEquivalentSnapshot(snapshot, readSnapshotRows(database));
       assert.throws(
-        () => importSnapshot(database, snapshot),
+        () => writeSnapshotToEmptyDatabase(database, snapshot),
         /no business records/,
       );
       checkSqlConstraints(database, snapshot);
+      checkRepositoryReads(database, snapshot);
       const competing = openDatabase(file);
       try {
         transaction(database, () => {
@@ -119,42 +114,12 @@ async function main() {
       reopened.close();
     }
   }
-  let sourceCounts: object | null = null;
-  if (values.source) {
-    const catalog = resolve(values.catalog ?? "content/scenes.json");
-    const before = await readJsonSource(resolve(values.source), catalog);
-    const database = createDatabase(join(directory, "source-copy.sqlite"));
-    try {
-      initializeSchema(database);
-      importSnapshot(database, before.snapshot);
-      assertEquivalentSnapshot(before.snapshot, readSnapshotRows(database));
-      checkRepositoryReads(database, before.snapshot);
-      const after = await readJsonSource(resolve(values.source), catalog);
-      assert.ok(
-        isDeepStrictEqual(before.manifest, after.manifest),
-        "Source changed during verification",
-      );
-      sourceCounts = {
-        scenes: before.snapshot.scenes.length,
-        sessions: before.snapshot.sessions.length,
-        events: before.snapshot.sessions.reduce(
-          (count, session) => count + session.turns.length,
-          0,
-        ),
-        receipts: before.snapshot.receipts.length,
-        sourceFilesUnchanged: true,
-      };
-    } finally {
-      database.close();
-    }
-  }
   console.log(
     JSON.stringify({
       event: "sqlite_checks_passed",
       directory,
       variants: 3,
       modelCalls: 0,
-      sourceCounts,
     }),
   );
 }
@@ -199,46 +164,82 @@ function checkRepositoryReads(
   }
 }
 
-function checkConversion(original: Session, snapshot: SqliteSnapshot) {
-  const converted = snapshot.sessions[0];
-  assert.equal(converted.revision, original.revision);
-  assert.equal(converted.status, original.status);
-  assert.equal(converted.currentQuestionId, original.currentQuestionId);
-  assert.deepEqual(converted.pendingContinuation, original.pendingContinuation);
-  assert.equal(converted.turns.length, original.turns.length + 1);
-  for (const event of converted.turns) {
-    if (event.action === "question") {
-      assert.deepEqual(
-        { id: event.questionId, ...event.payload },
-        original.presentedQuestions[event.questionId],
-      );
-    } else if (event.action === "completed") {
-      assert.equal(event.payload.closingMessage, original.closingMessage);
-    } else {
-      const source = original.turns.find((turn) => turn.id === event.id)!;
-      assert.notEqual(source.action, "continue");
-      if (source.action === "continue")
-        throw new Error("Unexpected fixture event");
-      assert.deepEqual(event.payload, {
-        text: source.text,
-        feedback: source.feedback,
-        effects: source.effects,
-        modelCall: source.modelCall,
-      });
-    }
+/** 保留对迁入历史的读取覆盖，不依赖已经退役的 JSON 转换器。 */
+function checkHistoricalFields(snapshot: SqliteSnapshot) {
+  const session = snapshot.sessions[0];
+  const first = session.turns[0];
+  assert.equal(first.action, "question");
+  if (first.action !== "question") throw new Error("Missing fixture question");
+  assert.equal(first.payload.english, "Actual first question?");
+  assert.equal(first.payload.chineseTranslation, undefined);
+  const answer = session.turns.find((event) => event.action === "answer")!;
+  if (answer.action !== "answer") throw new Error("Missing fixture answer");
+  assert.equal(answer.payload.feedback.roleplayTranslation, undefined);
+  assert.ok(
+    snapshot.receipts.some(
+      (receipt) =>
+        receipt.operation === "create-session" && receipt.createdAt === null,
+    ),
+  );
+}
+
+/** 种子无效必须在建库前拒绝；默认快照不携带用户或示例进度。 */
+function checkCatalogSeeds() {
+  const seed = createCatalogSnapshot(catalog);
+  assert.equal(seed.profile, null);
+  assert.deepEqual(seed.sessions, []);
+  assert.deepEqual(seed.receipts, []);
+  assert.ok(
+    seed.scenes.every(
+      (scene) => scene.plan === null && scene.origin === "builtin",
+    ),
+  );
+  for (const invalid of [
+    null,
+    {},
+    [],
+    [catalog[0], catalog[0]],
+    [{ ...catalog[0], id: "../unsafe" }],
+  ]) {
+    assert.throws(() => createCatalogSnapshot(invalid));
   }
-  for (const turn of original.turns) {
-    const receipt = snapshot.receipts.find(
-      (item) => item.requestId === turn.requestId,
+}
+
+/** 实际执行初始化 CLI：成功安装、重复目标拒绝、坏种子不创建文件；全部在临时目录。 */
+async function checkInitializationCommand(directory: string) {
+  const target = join(directory, "fresh.sqlite");
+  const initialize = (file: string, seed: string) =>
+    spawnSync(
+      process.execPath,
+      [
+        "--import",
+        "tsx",
+        "scripts/initialize-sqlite.ts",
+        "--target",
+        file,
+        "--catalog",
+        seed,
+      ],
+      { encoding: "utf8", timeout: 30_000 },
     );
-    assert.ok(receipt && receipt.operation === "session-turn");
-    assert.equal(receipt.inputHash, turn.inputHash);
-    assert.deepEqual(receipt.result, {
-      sessionId: original.id,
-      turnId: turn.id,
-      revision: turn.revision,
-    });
+  assert.equal(initialize(target, "content/scenes.json").status, 0);
+  assert.notEqual(initialize(target, "content/scenes.json").status, 0);
+  const database = openDatabase(target, true);
+  try {
+    assertSchemaVersion(database);
+    checkDatabase(database);
+    assertEquivalentSnapshot(
+      createCatalogSnapshot(catalog),
+      readSnapshotRows(database),
+    );
+  } finally {
+    database.close();
   }
+  const invalidCatalog = join(directory, "invalid-catalog.json");
+  await writeFile(invalidCatalog, JSON.stringify([catalog[0], catalog[0]]));
+  const invalidTarget = join(directory, "invalid.sqlite");
+  assert.notEqual(initialize(invalidTarget, invalidCatalog).status, 0);
+  await assert.rejects(stat(invalidTarget), { code: "ENOENT" });
 }
 
 function checkContractRejections(snapshot: SqliteSnapshot) {
@@ -260,24 +261,18 @@ function checkContractRejections(snapshot: SqliteSnapshot) {
 }
 
 function checkEarlyCoverage() {
-  const input = sqliteFixture();
-  const session = Object.values(input.sceneData[0].sessions)[0];
+  const snapshot = sqliteFixture();
+  const session = snapshot.sessions[0];
   const answer = session.turns.find((turn) => turn.action === "answer")!;
   if (answer.action !== "answer") throw new Error("Missing fixture answer");
-  answer.text = "I would like to stay for three nights.";
-  answer.effects = {
+  answer.payload.text = "I would like to stay for three nights.";
+  answer.payload.effects = {
     coveredEarly: [{ questionId: "q3", evidence: "three nights" }],
     factChanges: [{ key: "nights", value: "3", evidence: "three nights" }],
   };
-  const converted = convertJsonSnapshot(input);
-  checkConversion(session, converted);
-  const invalid = structuredClone(converted);
-  const event = invalid.sessions[0].turns.find(
-    (turn) => turn.action === "answer",
-  )!;
-  if (event.action !== "answer") throw new Error("Missing converted answer");
-  event.payload.effects.coveredEarly[0].evidence = "not in source";
-  assert.equal(sqliteSnapshotSchema.safeParse(invalid).success, false);
+  assert.equal(sqliteSnapshotSchema.safeParse(snapshot).success, true);
+  answer.payload.effects.coveredEarly[0].evidence = "not in source";
+  assert.equal(sqliteSnapshotSchema.safeParse(snapshot).success, false);
 }
 
 function checkRollback(
@@ -286,7 +281,7 @@ function checkRollback(
 ) {
   database.exec(`CREATE TEMP TRIGGER fail_import BEFORE INSERT ON turns
     WHEN NEW.sequence = 2 BEGIN SELECT RAISE(ABORT, 'injected failure'); END`);
-  assert.throws(() => importSnapshot(database, snapshot), {
+  assert.throws(() => writeSnapshotToEmptyDatabase(database, snapshot), {
     code: "DATABASE_CONSTRAINT_FAILED",
   });
   for (const table of [

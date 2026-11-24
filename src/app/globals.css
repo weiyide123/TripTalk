@@ -146,23 +146,6 @@ p {
   font-weight: 400;
   color: #7c8c9e;
 }
-.local-badge {
-  margin-left: auto;
-  display: flex;
-  gap: 6px;
-  align-items: center;
-  font-size: 11px;
-  color: #7d93a6;
-  white-space: nowrap;
-}
-.local-badge span,
-.saved-dot {
-  height: 6px;
-  width: 6px;
-  border-radius: 100%;
-  background: #7eaf9b;
-  display: inline-block;
-}
 .jane-hero {
   height: 245px;
   background: linear-gradient(113deg, #c7e6fb, #ddf0ff 68%, #d2eafb);
@@ -322,10 +305,6 @@ p {
 }
 .home-heading h2 span {
   display: inline-block;
-}
-.soft-tag {
-  font-size: 11px;
-  color: #8ba0b1;
 }
 .featured-scene {
   display: flex;
@@ -493,16 +472,6 @@ p {
   font-size: 10px;
   color: #8c9dad;
 }
-.privacy-note {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  font-size: 10px;
-  color: #8c9eac;
-  margin-top: 28px;
-  line-height: 1.7;
-}
 .app-footer {
   margin: 0 38px;
   border-top: 1px solid #e9eff5;
@@ -623,6 +592,8 @@ p {
   color: #7a8fa1;
 }
 .chat-history {
+  /* 让无障碍隐藏标签的绝对定位留在滚动区，避免撑高外层页面。 */
+  position: relative;
   overflow-y: auto;
   max-height: 260px;
   min-height: 135px;
@@ -661,13 +632,32 @@ p {
   background: #eaf4fc;
 }
 .tutor-note {
+  color: #294b68;
+  max-width: 85%;
+  margin-bottom: 17px;
+}
+.tutor-note-positive {
   display: flex;
   align-items: flex-start;
   gap: 10px;
   padding: 10px 0;
-  color: #506980;
-  max-width: 85%;
-  margin-bottom: 17px;
+  color: #52748e;
+}
+.tutor-note-card {
+  width: 85%;
+  border: 1px solid #c8e1f2;
+  border-radius: 12px;
+  padding: 18px 20px;
+  background: #f0f8ff;
+}
+.tutor-note-heading {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+  color: #347ba9;
+  font-size: 14px;
+  font-weight: 600;
 }
 .tutor-note-badge {
   display: grid;
@@ -675,13 +665,34 @@ p {
   width: 26px;
   height: 26px;
   border-radius: 50%;
-  background: #eaf5ff;
-  color: #368fc9;
+  background: #eaf4fc;
+  color: #438ec1;
   flex-shrink: 0;
 }
 .tutor-note-content {
   min-width: 0;
   padding-top: 2px;
+}
+.tutor-note-card .tutor-note-badge {
+  width: 28px;
+  height: 28px;
+  border-radius: 9px;
+  background: #e0effb;
+  color: #347ba9;
+}
+.tutor-note-card .tutor-note-content {
+  padding: 0 0 0 38px;
+}
+.tutor-note-retry {
+  background: #fff7ed;
+  border-color: #efd7b7;
+}
+.tutor-note-retry .tutor-note-heading,
+.tutor-note-retry .tutor-note-badge {
+  color: #9a622b;
+}
+.tutor-note-retry .tutor-note-badge {
+  background: #faead4;
 }
 .tutor-note p {
   font-size: 13px;
@@ -692,36 +703,66 @@ p {
 .tutor-note .corrected-answer {
   font-size: 14px;
   font-weight: 600;
-  color: #254562;
-  margin-top: 7px;
+  color: #294b68;
+  margin: 12px 0;
 }
 .tutor-note .explanation {
   margin-top: 7px;
+  color: #61758a;
+}
+.tutor-note-card p {
+  font-size: 14px;
+}
+.tutor-note-card .explanation {
+  font-size: 13px;
+}
+@media (max-width: 480px) {
+  .tutor-note-card {
+    width: 95%;
+    padding: 14px;
+  }
+  .tutor-note-card .tutor-note-content {
+    padding-left: 0;
+  }
 }
 .answer-panel {
   border-top: 1px solid #e0eaf2;
   padding-top: 16px;
 }
-.task-heading {
+.guidance-row {
   display: flex;
-  align-items: center;
-  gap: 10px;
+  align-items: baseline;
+  gap: 16px;
+}
+.reply-guidance {
+  /* 与输入正文的 16px 内边距对齐，不让辅助文字贴在容器外沿。 */
+  padding: 4px 16px 2px;
   margin-bottom: 12px;
 }
-.task-icon {
-  background: #e7f1fa;
-  border-radius: 10px;
-  padding: 9px;
-  color: #6b9cbf;
+.guidance-label {
+  flex: 0 0 52px;
+  font-size: 12px;
+  font-weight: 500;
+  color: #647d91;
 }
-.task-heading .eyebrow {
-  font-size: 9px;
-  letter-spacing: 0.5px;
-  margin-bottom: 4px;
-}
-.task-heading p {
+.guidance-row p {
+  min-width: 0;
+  margin: 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
   font-size: 13px;
-  color: #3b5f7c;
+  line-height: 1.7;
+  color: #506d85;
+}
+.guidance-task p {
+  font-size: 14px;
+  color: #294e6b;
+}
+.guidance-hints:not(:empty) {
+  margin-top: 8px;
+}
+.guidance-hints .guidance-row + .guidance-row {
+  margin-top: 6px;
 }
 .input-wrap {
   border: 1px solid #cadde9;
@@ -780,43 +821,33 @@ p {
   padding: 11px 25px;
   min-height: 40px;
 }
-.hint-panel {
-  background: #f0faff;
-  border: 1px solid #cbe7f8;
+.guidance-reference {
+  background: #f0f8fe;
   border-radius: 12px;
-  padding: 12px 15px;
-  margin-bottom: 12px;
+  padding: 10px 14px;
+  margin-top: 10px;
 }
-.hint-panel > .message-author {
-  color: #397ba6;
-  font-size: 12px;
-}
-.hint-panel > p {
+.guidance-reference > p {
+  margin: 5px 0 0;
   font-size: 13px;
   line-height: 1.7;
-  color: #376888;
-  white-space: pre-wrap;
-}
-.hint-example {
-  border: 1px solid #cbe7f8;
-  background: white;
   color: #39698d;
-  padding: 7px 12px;
-  border-radius: 10px;
-  font-size: 12px;
-  text-align: left;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.guidance-reference-heading {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 12px;
-  line-height: 1.6;
+  justify-content: space-between;
+  gap: 8px;
+  color: #647d91;
+  font-size: 12px;
+  font-weight: 500;
 }
-.hint-example p {
-  flex: 1 1 180px;
-  margin: 0;
-}
-.hint-example .text-button {
+.guidance-reference-heading .text-button {
   flex-shrink: 0;
+  font-size: 12px;
 }
 .continue-panel {
   display: flex;
@@ -912,9 +943,6 @@ p {
   .topbar {
     padding: 0 26px;
     gap: 20px;
-  }
-  .local-badge {
-    display: none;
   }
   .featured-art {
     width: 170px;
@@ -1018,9 +1046,6 @@ p {
     margin: 0 24px;
   }
   .app-footer > span {
-    display: none;
-  }
-  .soft-tag {
     display: none;
   }
 }
@@ -1199,17 +1224,6 @@ p {
   .scene-en {
     font-size: 8px;
   }
-  .privacy-note {
-    align-items: flex-start;
-    font-size: 9px;
-    text-align: left;
-    margin-top: 22px;
-    padding: 0 5px;
-  }
-  .privacy-note svg {
-    flex-shrink: 0;
-    margin-top: 2px;
-  }
   .app-footer {
     margin: 0 20px;
     font-size: 9px;
@@ -1259,11 +1273,8 @@ p {
   .tutor-note {
     max-width: 95%;
   }
-  .task-heading p {
-    font-size: 12px;
-  }
-  .task-icon {
-    padding: 8px;
+  .guidance-row {
+    gap: 10px;
   }
   .input-wrap textarea {
     font-size: 16px;
@@ -1349,6 +1360,185 @@ p {
     animation: none !important;
     transition: none !important;
     scroll-behavior: auto !important;
+  }
+}
+
+/* 对话页按视口分配高度：头部与作答区保留位置，历史消息占用剩余空间。 */
+.app-shell.lesson-shell {
+  display: flex;
+  flex-direction: column;
+  height: calc(100dvh - 24px);
+  margin: 12px auto;
+  width: calc(100% - 24px);
+}
+.lesson-shell > .topbar {
+  height: 58px;
+  flex-shrink: 0;
+}
+.lesson-shell > .jane-hero {
+  position: relative;
+  flex-shrink: 0;
+  height: clamp(100px, 16dvh, 142px);
+  padding: 12px 32px 12px 200px;
+}
+.lesson-shell .jane-avatar {
+  width: 165px;
+  height: calc(100% + 10px);
+  left: 18px;
+  bottom: -10px;
+}
+.lesson-shell .speech-bubble {
+  padding: 12px 22px;
+}
+.lesson-shell .speech-bubble h1 {
+  font-size: 20px;
+}
+.lesson-shell .jane-label {
+  margin-bottom: 6px;
+}
+.lesson-shell .conversation-content {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  padding-bottom: 12px;
+}
+.lesson-shell .lesson-toolbar {
+  flex-shrink: 0;
+  padding: 10px 0;
+}
+.lesson-shell .chat-history {
+  flex: 1;
+  min-height: 0;
+  max-height: none;
+}
+.lesson-shell .answer-panel {
+  flex-shrink: 1;
+  min-height: 0;
+  padding-top: 10px;
+  /* 极矮窗口或多条异常提示仍可访问内容，不让作答区撑高整页。 */
+  max-height: 65%;
+  overflow-y: auto;
+  scrollbar-width: thin;
+}
+/* 长模型内容集中滚动，不让逐级提示累积挤走输入与历史消息。 */
+.lesson-shell .reply-guidance {
+  max-height: clamp(72px, calc(100dvh - 490px), 180px);
+  overflow-y: auto;
+  scrollbar-width: thin;
+}
+.lesson-shell .input-wrap textarea {
+  min-height: 72px;
+  height: 72px;
+  resize: none;
+}
+.lesson-shell .composer-actions {
+  position: sticky;
+  bottom: 0;
+  z-index: 2;
+  background: #fbfdff;
+  margin-top: 6px;
+  padding: 4px 0;
+}
+.lesson-shell > .app-footer {
+  display: none;
+}
+/* C 版：输入与操作共用边框，状态提示不再占据独立工具栏。 */
+.lesson-shell .integrated-composer {
+  border-radius: 18px;
+}
+.lesson-shell .integrated-composer textarea {
+  padding: 14px 16px 8px;
+}
+.integrated-composer .char-count {
+  position: static;
+  display: block;
+  padding: 0 16px 6px;
+  text-align: right;
+}
+.integrated-composer .voice-input {
+  margin-top: 0;
+  padding: 0 16px 8px;
+}
+.lesson-shell .integrated-composer .composer-actions {
+  margin-top: 0;
+  padding: 2px 0 0;
+  background: white;
+  border-radius: 0 0 14px 14px;
+}
+.integrated-composer .help-actions .button {
+  background: transparent;
+  padding: 8px 0;
+  box-shadow: none;
+  font-size: 12px;
+}
+.integrated-composer .voice-toggle,
+.integrated-composer .send-actions .composer-send {
+  width: 38px;
+  height: 38px;
+  min-height: 38px;
+  padding: 0;
+  border-radius: 50%;
+  justify-content: center;
+}
+.integrated-composer .voice-input-row {
+  padding: 4px 0;
+}
+@media (pointer: coarse) {
+  .integrated-composer .voice-toggle,
+  .integrated-composer .send-actions .composer-send {
+    width: 44px;
+    height: 44px;
+    min-height: 44px;
+  }
+}
+@media (max-width: 540px) {
+  .app-shell.lesson-shell {
+    width: 100%;
+    height: 100dvh;
+    margin: 0;
+    border-radius: 0;
+  }
+  .lesson-shell > .topbar {
+    height: 48px;
+  }
+  .lesson-shell > .jane-hero {
+    height: 100px;
+    padding: 8px 14px 8px 100px;
+  }
+  .lesson-shell .jane-avatar {
+    width: 115px;
+    height: 115px;
+    left: -5px;
+    bottom: -10px;
+  }
+  .lesson-shell .speech-bubble {
+    padding: 8px 12px;
+  }
+  .lesson-shell .speech-bubble h1 {
+    font-size: 14px;
+  }
+  .lesson-shell .conversation-content {
+    padding-bottom: max(8px, env(safe-area-inset-bottom));
+  }
+}
+/* 键盘/横屏压缩可用高度时，隐藏重复问题头图，优先保留对话和输入。 */
+@media (max-height: 600px) {
+  .lesson-shell > .jane-hero {
+    display: none;
+  }
+}
+@media (max-height: 450px) {
+  .lesson-shell .answer-panel {
+    max-height: 80%;
+    padding-top: 6px;
+  }
+  .lesson-shell .reply-guidance {
+    max-height: 72px;
+  }
+  .lesson-shell .input-wrap textarea {
+    min-height: 56px;
+    height: 56px;
   }
 }
 

@@ -19,7 +19,6 @@ export const AUDIO_FORMATS = {
 export const transcriptionResultSchema = z.object({
   text: z.string().trim().min(1).max(RECORDING_LIMITS.maxTextLength),
 });
-export type TranscriptionResult = z.infer<typeof transcriptionResultSchema>;
 
 /** 去除浏览器附加的 codecs 参数，只接受录音支持的音频容器。 */
 export function audioFormat(mimeType: string) {

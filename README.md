@@ -6,7 +6,7 @@ P1 已实现奶蓝首页、固定 Jane、动态场景目录、三档难度、对
 
 ## 本机启动
 
-已确认顺序：P1 核心流程 → P1.5 SQLite → P1.6 录音输入与句子播放 → P2 自由聊天 → P3 错题复习与收藏。SQLite 已获用户验收；录音识别填入草稿、Jane 句子点播已接入，真实设备与云端识别待验收。范围见 [开发节奏](docs/development-plan.md)。
+已确认顺序：P1 核心流程 → P1.5 SQLite → P1.6 录音输入与句子播放 → P1.7 用户自定义场景 → P2 主题结束后自由聊天 → P3a 收藏 → P3b 错题与基础复习，最后整体回归验收。P3c 为后续可选课程增强，与 P4 均不作为本期发布门槛。SQLite 已获用户验收；录音识别填入草稿、Jane 句子点播已接入，真实设备与云端识别待验收。后续功能尚未实现，范围见 [开发节奏](docs/development-plan.md)。
 
 需要 Node >=24.18 <25；从本目录运行：
 
@@ -32,9 +32,9 @@ npm run dev
 npm run sqlite:init -- --target data/triptalk.sqlite --catalog content/scenes.json
 ```
 
-目标必须不存在；只录入场景种子，不生成课程或示例进度。有旧 JSON 时不要初始化空库，应按 [SQLite 导读](docs/sqlite-migration-guide.md#8-迁移实施顺序) 停写、备份、导入候选并核对后切换。
+目标必须不存在；只录入场景种子，不生成课程或示例进度。SQLite 切换已完成，旧 JSON 导入命令已退役；不要用全新安装替代已有学习库。历史转换规则及备份边界见 [SQLite 导读](docs/sqlite-migration-guide.md#8-迁移实施顺序)。
 
-`npm run data:check` 检查真实服务 + 临时 SQLite（模拟 SDK，无收费调用）；`sqlite:check-repositories` 检查事务/幂等/并发；`sqlite:check` 检查导入/备份/恢复。追加 `-- --source data` 只核对切换前留档 JSON，不代表检查最新数据库。
+`npm run data:check` 检查真实服务 + 临时 SQLite（模拟 SDK，无收费调用）；`sqlite:check-repositories` 检查事务/幂等/并发；`sqlite:check` 检查种子校验、当前快照写入、约束和备份恢复；全部使用临时库，不读取旧 JSON 或正式学习库。
 
 ## 第一次 Agent 调用
 
@@ -85,5 +85,7 @@ VS Code 以 triptalk 为工作区根目录打开，安装推荐扩展 Prettier -
 ## 开发入口
 
 初次阅读代码，可先看 [代码目录与数据流导读](docs/code-and-data-flow.md)：按“进入首页 → 生成场景目录 → 创建主题对话 → 作答并自动推进 → 保存与续学”追踪核心文件，区分 Service、Repository 和 SQLite，以及数据库显式初始化的时机。它是辅助说明，不替代架构、数据契约和开发计划。
+
+语音功能单独看 [录音输入与句子播放导读](docs/voice-input-and-playback.md)：从浏览器录音、云端转写到草稿回填，以及系统语音播放、取消清理和文件分工；先讲技术概念，再跟实际函数。
 
 模型先读 [AGENTS.md](AGENTS.md)，再按当前阶段查看 [开发节奏](docs/development-plan.md)、[项目目录](docs/project-structure.md)。当前进行 P1.6 真实语音验收，不同时扩展自由聊天或复习。转写配置及隐私见 [OpenAI 接入](docs/openai-setup.md#录音转文字接入p16)；`npm run voice:check` 仅做离线边界回归，不调用收费模型。
