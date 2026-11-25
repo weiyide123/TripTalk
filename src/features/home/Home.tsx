@@ -73,8 +73,10 @@ export function Home({ sceneId }: { sceneId: SceneId }) {
           <SceneExplorer
             scenes={home.scenes}
             selectedSceneId={sceneId}
+            difficulty={home.difficulty}
             disabled={Boolean(busy)}
             onSelect={state.changeScene}
+            onCreated={state.addCreatedScene}
           />
         )}
       </main>

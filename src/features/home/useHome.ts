@@ -2,7 +2,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { HomeView, MutationResult } from "@/contracts/views";
-import type { SceneId } from "@/contracts/scene";
+import type { CatalogScene, SceneId } from "@/contracts/scene";
 import {
   createRequestSchema,
   courseInitializationSchema,
@@ -148,17 +148,32 @@ export function useHome(sceneId: SceneId) {
       setBusy(null);
     }
   }
+  /** 将已确认创建的场景追加到目录；重试返回已有场景时不重复添加或改变顺序。 */
+  function addCreatedScene(scene: CatalogScene) {
+    setHome((previous) => {
+      if (!previous || previous.scenes.some((item) => item.id === scene.id)) {
+        return previous;
+      }
+      return {
+        ...previous,
+        scenes: [...previous.scenes, scene],
+      };
+    });
+  }
+
   // 先保存 lastSceneId 再跳转，失败时停留原场景并显示错误。
   async function changeScene(nextSceneId: SceneId) {
-    if (lock.current) return;
+    if (lock.current) return false;
     lock.current = true;
     setBusy("scene");
     setError("");
     try {
       await api("/preferences", { lastSceneId: nextSceneId }, "PATCH");
       router.push("/?scene=" + encodeURIComponent(nextSceneId));
+      return true;
     } catch (e) {
       setError((e as Error).message);
+      return false;
     } finally {
       lock.current = false;
       setBusy(null);
@@ -248,6 +263,7 @@ export function useHome(sceneId: SceneId) {
     load,
     changeDifficulty,
     changeScene,
+    addCreatedScene,
     start,
     openCoursePlan,
     closeCoursePlan,

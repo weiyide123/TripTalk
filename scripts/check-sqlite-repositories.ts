@@ -92,6 +92,7 @@ async function main() {
     await checkLocks(store, database);
     checkTurnWrites(store, database, created.id);
     checkCompletionAndRepeat(store, request);
+    checkCustomScenes(store, database);
     checkDatabase(database);
   } finally {
     database.close();
@@ -103,6 +104,13 @@ async function main() {
       inFlight: new Set(),
     });
     assert.equal(restored.profile.read().lastSceneId, "airport");
+    assert.ok(
+      restored.catalog
+        .list()
+        .some(
+          (scene) => scene.title === "咖啡店点单" && scene.origin === "custom",
+        ),
+    );
     assert.equal(
       restored.sessions
         .progress("hotel")
@@ -126,6 +134,71 @@ async function main() {
       formalDataChanged: false,
     }),
   );
+}
+
+/** 临时库验证自定义场景、重放、事务回滚和原课程链路，不访问正式学习数据。 */
+function checkCustomScenes(store: SqliteStore, database: DatabaseSync) {
+  const before = store.catalog.list();
+  const profile = store.profile.read();
+  const input = {
+    requestId: randomUUID(),
+    description: "咖啡店点单。我想点一杯拿铁并确认价格。",
+  };
+  const created = store.catalog.createCustom(input);
+  assert.equal(created.origin, "custom");
+  assert.equal(created.title, "咖啡店点单");
+  assert.equal(created.scope, input.description);
+  assert.equal(created.art, "generic");
+  assert.equal(store.catalog.readPlan(created.id), null);
+  assert.deepEqual(store.catalog.createCustom(input), created);
+  assert.equal(store.catalog.list().length, before.length + 1);
+  assert.deepEqual(store.catalog.list().slice(0, before.length), before);
+  assert.deepEqual(store.profile.read(), profile);
+  assert.throws(
+    () =>
+      store.catalog.createCustom({
+        ...input,
+        description: "租车取车并确认保险",
+      }),
+    { code: "REQUEST_ID_CONFLICT" },
+  );
+  for (const description of ["", "11", "123456", "a".repeat(501)]) {
+    assert.throws(() =>
+      store.catalog.createCustom({ requestId: randomUUID(), description }),
+    );
+  }
+  database.exec(`CREATE TEMP TRIGGER reject_custom_receipt BEFORE INSERT ON operation_receipts
+    WHEN NEW.operation = 'create-scene' BEGIN SELECT RAISE(ABORT, 'fixture failure'); END`);
+  try {
+    assert.throws(() =>
+      store.catalog.createCustom({
+        requestId: randomUUID(),
+        description: "购买剧院演出票",
+      }),
+    );
+    assert.equal(store.catalog.list().length, before.length + 1);
+  } finally {
+    database.exec("DROP TRIGGER reject_custom_receipt");
+  }
+  const plan = {
+    ...sqliteFixture().scenes.find((scene) => scene.plan)!.plan!,
+    sceneId: created.id,
+  };
+  store.catalog.initializeCourse(
+    { requestId: randomUUID(), sceneId: created.id },
+    plan,
+  );
+  const candidate = initialTrainingSession(created, plan.topics[0]);
+  const session = store.sessions.create(
+    {
+      requestId: randomUUID(),
+      sceneId: created.id,
+      topicId: plan.topics[0].id,
+    },
+    candidate,
+  );
+  assert.equal(session.sceneId, created.id);
+  assert.equal(session.configSnapshot.lesson.title, created.title);
 }
 
 function checkProfile(store: SqliteStore, database: DatabaseSync) {

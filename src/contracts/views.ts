@@ -1,4 +1,4 @@
-import type { Scene } from "./scene";
+import type { Scene, CatalogScene } from "./scene";
 import type { Difficulty } from "./difficulty";
 import type { VisibleQuestion } from "./dialogue-plan";
 import type { Feedback } from "./teaching";
@@ -52,7 +52,7 @@ export type SessionSummary = {
 export type HomeView = {
   onboardingCompleted: boolean;
   scene: Scene;
-  scenes: Scene[];
+  scenes: CatalogScene[];
   difficulty: Difficulty;
   initialized: boolean;
   sceneCompleted: boolean;

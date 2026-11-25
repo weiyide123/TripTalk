@@ -9,5 +9,6 @@ test-results/
 .env.*
 !.env.example
 data/
+/docs/
 *.log
 .DS_Store

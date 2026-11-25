@@ -17,6 +17,22 @@ export const sceneSchema = z
   })
   .strict();
 export type Scene = z.infer<typeof sceneSchema>;
+export const catalogSceneSchema = sceneSchema.extend({
+  origin: z.enum(["builtin", "custom"]),
+});
+export type CatalogScene = z.infer<typeof catalogSceneSchema>;
+
+/** 用描述首句生成短标题；完整练习范围始终保存在 scope，不调用模型起名。 */
+export function customSceneTitle(description: string) {
+  const first = description
+    .trim()
+    .split(/[。！？\n]/u)[0]
+    .trim();
+  const characters = Array.from(first || description.trim());
+  return characters.length > 24
+    ? characters.slice(0, 24).join("") + "…"
+    : characters.join("");
+}
 export const topicContentSchema = z
   .object({
     title: z.string().trim().min(2).max(50),

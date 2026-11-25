@@ -3,6 +3,18 @@ import { sceneIdSchema } from "./scene";
 import { difficultySchema } from "./difficulty";
 
 export const requestIdSchema = z.string().uuid();
+export const customSceneRequestSchema = z
+  .object({
+    requestId: requestIdSchema,
+    description: z
+      .string()
+      .trim()
+      .min(5)
+      .max(500)
+      .regex(/[\p{L}]/u),
+  })
+  .strict();
+export type CustomSceneRequest = z.infer<typeof customSceneRequestSchema>;
 export const actionSchema = z.enum(["answer", "hint", "explain", "continue"]);
 export const createRequestSchema = z
   .object({

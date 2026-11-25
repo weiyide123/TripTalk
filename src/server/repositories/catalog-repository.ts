@@ -1,6 +1,8 @@
 import type { DatabaseSync, SQLOutputValue } from "node:sqlite";
+import { randomUUID } from "node:crypto";
 import {
-  sceneSchema,
+  catalogSceneSchema,
+  customSceneTitle,
   scenePlanSchema,
   type ScenePlan,
 } from "@/contracts/scene";
@@ -8,6 +10,8 @@ import { sceneIdSchema } from "@/contracts/scene-id";
 import {
   courseInitializationSchema,
   type CourseInitialization,
+  customSceneRequestSchema,
+  type CustomSceneRequest,
 } from "@/contracts/requests";
 import { AppError } from "../errors";
 import { inputHash } from "../request-hash";
@@ -31,6 +35,43 @@ export class CatalogRepository {
   /** 读取指定场景的公开配置，不存在时抛错；不包含生成课程和学习记录。 */
   get(sceneId: string) {
     return sceneFromRow(this.sceneRow(sceneId));
+  }
+
+  /** 创建自定义场景及成功回执；写事务内去重，不生成课程、不改已有进度。 */
+  createCustom(input: CustomSceneRequest) {
+    const request = customSceneRequestSchema.parse(input);
+    return transaction(this.database, () => {
+      const previous = findOperationReceipt(
+        this.database,
+        "create-scene",
+        "local",
+        request,
+      );
+      if (previous) return this.get(previous.result.sceneId);
+      const sceneId = "custom-" + randomUUID();
+      this.database
+        .prepare(
+          `INSERT INTO scenes
+        (id, origin, position, version, title, description, scope, english_title, art)
+        VALUES (?, 'custom', (SELECT COALESCE(MAX(position), -1) + 1 FROM scenes),
+          1, ?, ?, ?, 'MY SCENE', 'generic')`,
+        )
+        .run(
+          sceneId,
+          customSceneTitle(request.description),
+          request.description,
+          request.description,
+        );
+      insertOperationReceipt(this.database, {
+        operation: "create-scene",
+        scopeId: "local",
+        requestId: request.requestId,
+        inputHash: inputHash(request),
+        createdAt: new Date().toISOString(),
+        result: { sceneId },
+      });
+      return this.get(sceneId);
+    });
   }
 
   /** 仅确认场景 ID 合法且存在，供不需要场景内容的业务校验使用。 */
@@ -177,7 +218,8 @@ export class CatalogRepository {
 
 /** 将数据库列名映射为业务字段并校验，仅返回场景公开配置。 */
 function sceneFromRow(row: Record<string, SQLOutputValue>) {
-  return sceneSchema.parse({
+  return catalogSceneSchema.parse({
+    origin: row.origin,
     id: row.id,
     version: row.version,
     title: row.title,
