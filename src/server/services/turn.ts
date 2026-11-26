@@ -120,6 +120,23 @@ async function evaluateAnswer(candidate: TrainingSession, input: TurnRequest) {
       true,
       { reason: "OUTPUT_SCHEMA_INVALID", stage: "model_output" },
     );
+  const evaluation = parsed.data;
+  if (
+    (evaluation.canContinue && !evaluation.learnerTranslation) ||
+    Boolean(evaluation.correctedAnswer?.trim()) !==
+      Boolean(evaluation.correctedTranslation)
+  ) {
+    throw new AppError(
+      "AGENT_OUTPUT_INVALID",
+      "回复释义不完整，请重试。",
+      502,
+      true,
+      {
+        reason: "ANSWER_TRANSLATION_MISMATCH",
+        stage: "model_output",
+      },
+    );
+  }
   const u = result.state.usage;
   const usage: ModelCall = {
     promptVersion: PROMPT_VERSION,

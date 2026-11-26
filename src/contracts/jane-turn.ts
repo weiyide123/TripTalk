@@ -16,6 +16,14 @@ export const evaluationSchema = z.object({
   ]),
   canContinue: z.boolean(),
   correctedAnswer: z.string().max(600).nullable(),
+  learnerTranslation: z.string().trim().min(1).max(3000).nullable().optional(),
+  correctedTranslation: z
+    .string()
+    .trim()
+    .min(1)
+    .max(1200)
+    .nullable()
+    .optional(),
   explanation: z.string().max(800).nullable(),
   errorTypes: z.array(z.enum(["grammar", "meaning"])).max(2),
   roleplayLine: z.string().max(400),
@@ -48,6 +56,8 @@ export const evaluationSchema = z.object({
 });
 // 模型输出必须带翻译字段，持久化仍能读取尚无翻译的历史记录。
 export const generatedEvaluationSchema = evaluationSchema.extend({
+  learnerTranslation: evaluationSchema.shape.learnerTranslation.unwrap(),
+  correctedTranslation: evaluationSchema.shape.correctedTranslation.unwrap(),
   roleplayTranslation: evaluationSchema.shape.roleplayTranslation.unwrap(),
   continuation: continuationSchema.required().nullable(),
 });

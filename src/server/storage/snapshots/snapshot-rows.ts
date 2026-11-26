@@ -1,4 +1,5 @@
 import type { DatabaseSync } from "node:sqlite";
+import { readFavoriteRow } from "../../repositories/favorite-records";
 import {
   sqliteSnapshotSchema,
   type SqliteSnapshot,
@@ -55,6 +56,25 @@ export function insertSnapshotRows(
       );
   }
   insertSessions(database, snapshot);
+  const favoriteInsert = database.prepare(`INSERT INTO favorites
+    (id, source_turn_id, source_part, scene_id, topic_id, scene_title,
+     topic_title, english, chinese_translation, explanation, created_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`);
+  for (const favorite of snapshot.favorites) {
+    favoriteInsert.run(
+      favorite.id,
+      favorite.sourceTurnId,
+      favorite.sourcePart,
+      favorite.sceneId,
+      favorite.topicId,
+      favorite.sceneTitle,
+      favorite.topicTitle,
+      favorite.english,
+      favorite.chineseTranslation,
+      favorite.explanation,
+      favorite.createdAt,
+    );
+  }
   const receiptInsert = database.prepare(`INSERT INTO operation_receipts
     (operation, scope_id, request_id, input_hash, result_json, created_at) VALUES (?, ?, ?, ?, ?, ?)`);
   for (const receipt of snapshot.receipts) {
@@ -65,6 +85,16 @@ export function insertSnapshotRows(
       receipt.inputHash,
       JSON.stringify(receipt.result),
       receipt.createdAt,
+    );
+  }
+  const translationInsert = database.prepare(`INSERT INTO turn_translations
+    (source_turn_id, source_part, chinese_translation, created_at) VALUES (?, ?, ?, ?)`);
+  for (const item of snapshot.translations) {
+    translationInsert.run(
+      item.sourceTurnId,
+      item.sourcePart,
+      item.chineseTranslation,
+      item.createdAt,
     );
   }
 }
@@ -212,5 +242,20 @@ export function readSnapshotRows(database: DatabaseSync): SqliteSnapshot {
       result: JSON.parse(String(receipt.result_json)),
       createdAt: receipt.created_at,
     })),
+    favorites: database
+      .prepare("SELECT * FROM favorites ORDER BY id")
+      .all()
+      .map(readFavoriteRow),
+    translations: database
+      .prepare(
+        "SELECT * FROM turn_translations ORDER BY source_turn_id, source_part",
+      )
+      .all()
+      .map((row) => ({
+        sourceTurnId: row.source_turn_id,
+        sourcePart: row.source_part,
+        chineseTranslation: row.chinese_translation,
+        createdAt: row.created_at,
+      })),
   });
 }

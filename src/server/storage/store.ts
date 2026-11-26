@@ -4,6 +4,9 @@ import type { DatabaseSync } from "node:sqlite";
 import { CatalogRepository } from "../repositories/catalog-repository";
 import { ProfileRepository } from "../repositories/profile-repository";
 import { SessionRepository } from "../repositories/session-repository";
+import { FavoriteRepository } from "../repositories/favorite-repository";
+import { TranslationRepository } from "../repositories/translation-repository";
+import type { FavoriteSource } from "@/contracts/favorite";
 import { AppError } from "../errors";
 import { openDatabase } from "./database";
 import { assertSchemaVersion } from "./schema-migrations";
@@ -20,11 +23,15 @@ export class SqliteStore {
   readonly profile;
   readonly catalog;
   readonly sessions;
+  readonly favorites;
+  readonly translations;
 
   constructor(private readonly resources: StoreResources) {
     this.profile = new ProfileRepository(resources.database);
     this.catalog = new CatalogRepository(resources.database);
     this.sessions = new SessionRepository(resources.database);
+    this.favorites = new FavoriteRepository(resources.database);
+    this.translations = new TranslationRepository(resources.database);
   }
 
   /** 防止同一场景的初始化/创建练习并发执行；只加进程内业务锁，不开启 SQL 事务。 */
@@ -35,6 +42,14 @@ export class SqliteStore {
   /** 同一练习同时只处理一个提交；重复并发请求立即报忙，不排队，也不锁其他练习。 */
   async withSessionOperation<T>(sessionId: string, work: () => Promise<T>) {
     return this.exclusive("session:" + sessionId, work);
+  }
+
+  /** 同一句补译禁止并发调用模型；锁不占用数据库事务，也不阻塞教学提交。 */
+  async withTranslationOperation<T>(
+    source: FavoriteSource,
+    work: () => Promise<T>,
+  ) {
+    return this.exclusive("translation:" + JSON.stringify(source), work);
   }
 
   /**

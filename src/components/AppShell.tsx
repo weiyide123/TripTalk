@@ -11,14 +11,18 @@ export function AppShell({
   compact = false,
   busy = false,
   onHome,
+  onFavorites,
+  activePage = "learning",
 }: {
   children: ReactNode;
-  title: ReactNode;
+  title?: ReactNode;
   subtitle?: string;
   label?: string;
   compact?: boolean;
   busy?: boolean;
   onHome?: () => void;
+  onFavorites?: () => void;
+  activePage?: "learning" | "favorites";
 }) {
   return (
     <div className={"app-shell" + (compact ? " lesson-shell" : "")}>
@@ -29,16 +33,42 @@ export function AppShell({
         />
         <span className="nav-divider" />
         <nav aria-label="主导航">
-          <span
-            className="nav-item active"
-            aria-current="page"
+          <Link
+            href="/"
+            className={
+              "nav-item" + (activePage === "learning" ? " active" : "")
+            }
+            aria-current={activePage === "learning" ? "page" : undefined}
+            onClick={(event) => {
+              if (busy || onHome) event.preventDefault();
+              if (!busy) onHome?.();
+            }}
+            aria-disabled={busy}
           >
             <Icon
               name="pin"
               size={17}
             />
             场景学习
-          </span>
+          </Link>
+          <Link
+            href="/favorites"
+            className={
+              "nav-item" + (activePage === "favorites" ? " active" : "")
+            }
+            aria-current={activePage === "favorites" ? "page" : undefined}
+            onClick={(event) => {
+              if (busy || onFavorites) event.preventDefault();
+              if (!busy) onFavorites?.();
+            }}
+            aria-disabled={busy}
+          >
+            <Icon
+              name="bookmark"
+              size={17}
+            />
+            收藏表达
+          </Link>
           <button
             className="nav-item"
             disabled
@@ -48,28 +78,32 @@ export function AppShell({
               name="book"
               size={18}
             />
-            复习与错题 <span className="soon-label">即将开放</span>
+            错题本 <span className="soon-label">即将开放</span>
           </button>
         </nav>
       </header>
-      <section
-        className="jane-hero"
-        aria-label="Jane 的引导"
-      >
-        <div className="hero-cloud cloud-one" />
-        <div className="hero-cloud cloud-two" />
-        <span className="hero-star star-one">✦</span>
-        <span className="hero-star star-two">✧</span>
-        <JaneAvatar />
-        <div className="speech-bubble">
-          <span className={"jane-label" + (compact ? "" : " jane-home-label")}>
-            {label ?? "Jane · 你的旅行搭子"}
-            {compact && <span>✦</span>}
-          </span>
-          <h1>{title}</h1>
-          {subtitle && <p>{subtitle}</p>}
-        </div>
-      </section>
+      {activePage !== "favorites" && (
+        <section
+          className="jane-hero"
+          aria-label="Jane 的引导"
+        >
+          <div className="hero-cloud cloud-one" />
+          <div className="hero-cloud cloud-two" />
+          <span className="hero-star star-one">✦</span>
+          <span className="hero-star star-two">✧</span>
+          <JaneAvatar />
+          <div className="speech-bubble">
+            <span
+              className={"jane-label" + (compact ? "" : " jane-home-label")}
+            >
+              {label ?? "Jane · 你的旅行搭子"}
+              {compact && <span>✦</span>}
+            </span>
+            <h1>{title}</h1>
+            {subtitle && <p>{subtitle}</p>}
+          </div>
+        </section>
+      )}
       {children}
       <footer className="app-footer">
         <Icon

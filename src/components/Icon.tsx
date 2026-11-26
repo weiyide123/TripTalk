@@ -20,6 +20,8 @@ const paths = {
   pause: "M8 5v14M16 5v14",
   copy: "M9 9h12v12H9ZM15 9V3H3v12h6",
   bookmark: "M6 3h12v18l-6-4-6 4Z",
+  link: "M10 13a5 5 0 0 0 7 0l3-3a5 5 0 0 0-7-7l-2 2M14 11a5 5 0 0 0-7 0l-3 3a5 5 0 0 0 7 7l2-2",
+  chevronDown: "m6 9 6 6 6-6",
   info: "M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20Zm0-11v6m0-10h.01",
   close: "m6 6 12 12M6 18 18 6",
   lock: "M6 10h12v11H6ZM8 10V6a4 4 0 0 1 8 0v4",

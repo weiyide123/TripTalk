@@ -1,4 +1,5 @@
 import { Icon } from "@/components/Icon";
+import { PendingFavoriteButton } from "../favorites/ConversationFavorites";
 import {
   isInFlight,
   submissionMessage,
@@ -24,6 +25,9 @@ export function PendingMessage(props: Props) {
           <span className="sr-only">你：</span>
           <p>{props.submission.operation.text}</p>
         </div>
+      </div>
+      <div className="message-actions">
+        <PendingFavoriteButton />
       </div>
       <StatusText submission={props.submission} />
     </div>

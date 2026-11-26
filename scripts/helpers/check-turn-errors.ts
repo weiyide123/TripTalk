@@ -164,6 +164,8 @@ function evaluation(patch: Partial<Evaluation> = {}): Evaluation {
     verdict: "needs_correction",
     canContinue: false,
     correctedAnswer: "Thank you!",
+    learnerTranslation: "原回答释义。",
+    correctedTranslation: "谢谢！",
     explanation: "请表达感谢",
     errorTypes: ["meaning"],
     roleplayLine: "Could you try again?",

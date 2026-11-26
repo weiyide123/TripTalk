@@ -17,6 +17,9 @@
     "sqlite:check": "node --import tsx scripts/check-sqlite.ts",
     "sqlite:check-repositories": "node --import tsx scripts/check-sqlite-repositories.ts",
     "sqlite:init": "node --import tsx scripts/initialize-sqlite.ts",
+    "sqlite:upgrade": "node --import tsx scripts/upgrade-sqlite.ts",
+    "favorites:check": "node --import tsx scripts/check-favorites.ts",
+    "favorites:check-answers": "node --import tsx scripts/check-answer-favorites.ts",
     "format": "prettier --write src scripts content .vscode package.json tsconfig.json next.config.ts postcss.config.mjs .prettierrc.json",
     "format:check": "prettier --check src scripts content .vscode package.json tsconfig.json next.config.ts postcss.config.mjs .prettierrc.json"
   },

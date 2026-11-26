@@ -23,7 +23,7 @@
 }
 .message-actions {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: flex-end;
   flex-wrap: wrap;
   gap: 4px;
@@ -32,6 +32,65 @@
 }
 .message-actions .text-button {
   color: inherit;
+}
+/* 图标固定在同一行；状态只变颜色，取消全局按钮的按下位移。 */
+.message-actions :is(.copy-button, .bookmark-button, .sentence-play-button) {
+  flex: 0 0 28px;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border-radius: 7px;
+  transition:
+    background-color 120ms ease,
+    color 120ms ease;
+}
+.message-actions
+  :is(.copy-button, .bookmark-button, .sentence-play-button):active {
+  transform: none;
+}
+.message-actions
+  :is(.copy-button, .bookmark-button, .sentence-play-button):focus-visible {
+  outline: 2px solid #84bce3;
+  outline-offset: 1px;
+}
+/* 保留占位避免跳动；气泡到工具栏属于同一个 hover 区，键盘/触屏仍可操作。 */
+@media (hover: hover) and (pointer: fine) {
+  .chat-message > .message-actions,
+  .pending-message > .message-actions,
+  .corrected-expression > .expression-actions {
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 120ms ease;
+  }
+  .chat-message:hover > .message-actions,
+  .chat-message:focus-within > .message-actions,
+  .chat-message:has(
+      [data-attention="true"],
+      .copy-status:not(:empty),
+      .sentence-playback-error,
+      .sentence-play-button[aria-pressed="true"]
+    )
+    > .message-actions,
+  .pending-message:hover > .message-actions,
+  .pending-message:focus-within > .message-actions,
+  .corrected-expression:hover > .expression-actions,
+  .corrected-expression:focus-within > .expression-actions,
+  .corrected-expression.recommended-expression-highlight > .expression-actions,
+  .corrected-expression:has([data-attention="true"]) > .expression-actions {
+    opacity: 1;
+    pointer-events: auto;
+  }
+}
+@media (pointer: coarse) {
+  .message-actions .text-button {
+    min-width: 44px;
+    min-height: 44px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .chat-message > .message-actions {
+    transition: none;
+  }
 }
 .bookmark-button[aria-disabled="true"] {
   opacity: 0.5;

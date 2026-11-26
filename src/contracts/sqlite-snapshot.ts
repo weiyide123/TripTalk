@@ -3,6 +3,8 @@ import { profileSchema } from "./profile";
 import { sceneSchema, scenePlanSchema } from "./scene";
 import { trainingSessionSchema } from "./training-session";
 import { operationReceiptSchema } from "./operation-receipt";
+import { favoriteSchema } from "./favorite";
+import { savedTranslationSchema } from "./sentence-translation";
 
 // 显式安装/离线核对使用完整快照；页面仓库不得为一次查询加载此聚合。
 export const sqliteSnapshotSchema = z
@@ -21,6 +23,8 @@ export const sqliteSnapshotSchema = z
       .min(1),
     sessions: z.array(trainingSessionSchema),
     receipts: z.array(operationReceiptSchema),
+    favorites: z.array(favoriteSchema).default([]),
+    translations: z.array(savedTranslationSchema).default([]),
   })
   .strict()
   .superRefine((snapshot, context) => {
@@ -67,6 +71,35 @@ export const sqliteSnapshotSchema = z
       }
     }
     const receiptIds = new Set<string>();
+    const translationSources = new Set<string>();
+    for (const translation of snapshot.translations) {
+      if (!eventIds.has(translation.sourceTurnId))
+        report("Unknown translation source");
+      const key = JSON.stringify([
+        translation.sourceTurnId,
+        translation.sourcePart,
+      ]);
+      if (translationSources.has(key)) report("Duplicate translation source");
+      translationSources.add(key);
+    }
+    const favoriteIds = new Set<string>();
+    const favoriteSources = new Set<string>();
+    for (const favorite of snapshot.favorites) {
+      if (favoriteIds.has(favorite.id)) report("Duplicate favorite identity");
+      favoriteIds.add(favorite.id);
+      if (favorite.sceneId && !scenes.has(favorite.sceneId))
+        report("Unknown favorite scene");
+      if (favorite.sourceTurnId) {
+        if (!eventIds.has(favorite.sourceTurnId))
+          report("Unknown favorite source");
+        const key = JSON.stringify([
+          favorite.sourceTurnId,
+          favorite.sourcePart,
+        ]);
+        if (favoriteSources.has(key)) report("Duplicate favorite source");
+        favoriteSources.add(key);
+      }
+    }
     for (const receipt of snapshot.receipts) {
       const key = JSON.stringify([
         receipt.operation,

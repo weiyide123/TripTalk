@@ -4,9 +4,13 @@
 
 P1 已实现奶蓝首页、固定 Jane、动态场景目录、三档难度、对话、提示纠错、本机保存与续学。酒店、机场、餐厅、交通四个固定场景共用生成流程；新场景生成 3–8 个主题，每主题一段 8–15 问的计划。用户已确认 P1 基本验收完成，具体状态及待补专项检查见 [开发节奏](docs/development-plan.md)。自由聊天和错题页暂未开放。
 
+收藏表达新增独立页面与场景／主题筛选，支持原对话定位，说明与视觉见 [收藏技术方案](docs/favorites.md)。最新实施顺序：收藏 → 错题与基础复习 → 轻量自由聊天（后两项本次不实施）。自定义场景已获用户验收。
+
+已有 001 结构的数据库需要停服后执行一次 `npm run sqlite:upgrade -- --target data/triptalk.sqlite`。命令先建立一致性备份，再升级并核对原学习记录；已有最新结构会直接返回，不重复迁移。
+
 ## 本机启动
 
-已确认顺序：P1 核心流程 → P1.5 SQLite → P1.6 录音输入与句子播放 → P1.7 用户自定义场景 → P2 主题结束后自由聊天 → P3a 收藏 → P3b 错题与基础复习，最后整体回归验收。P3c 与 P4 均不作为本期发布门槛。SQLite 和录音功能已获用户确认；自定义场景 A 版已接入，待真实课程生成与学习验收。句子播放待单独确认；P2/P3 尚未实施，范围见 [开发节奏](docs/development-plan.md)。
+已确认顺序：P1 核心流程 → P1.5 SQLite → P1.6 录音输入与句子播放 → P1.7 用户自定义场景 → P3a 收藏 → P3b 错题与基础复习 → P2 轻量自由聊天，最后整体回归验收。P3c 与 P4 均不作为本期发布门槛。SQLite、录音与自定义场景已获用户确认；收藏已完成工程回归，并于 2026-11-26 获用户验收。P2/P3b 尚未实施，下一步先确认错题与基础复习方案，范围见 [开发节奏](docs/development-plan.md)。
 
 需要 Node >=24.18 <25；从本目录运行：
 
@@ -33,6 +37,8 @@ npm run sqlite:init -- --target data/triptalk.sqlite --catalog content/scenes.js
 ```
 
 目标必须不存在；只录入场景种子，不生成课程或示例进度。SQLite 切换已完成，旧 JSON 导入命令已退役；不要用全新安装替代已有学习库。历史转换规则及备份边界见 [SQLite 导读](docs/sqlite-migration-guide.md#8-迁移实施顺序)。
+
+已有 001/002 库需先停止服务，再运行 `npm run sqlite:upgrade -- --target data/triptalk.sqlite`。命令先做一致性备份，再升级到 003，核对原学习记录与收藏不变；不要重新初始化已有库。新安装一次建好最新结构。收藏专项回归：`npm run favorites:check`、`npm run favorites:check-answers`（仅临时数据，无真实模型调用）。
 
 `npm run data:check` 检查真实服务 + 临时 SQLite（模拟 SDK，无收费调用）；`sqlite:check-repositories` 检查事务/幂等/并发；`sqlite:check` 检查种子校验、当前快照写入、约束和备份恢复；全部使用临时库，不读取旧 JSON 或正式学习库。
 
@@ -76,7 +82,7 @@ VS Code 以 triptalk 为工作区根目录打开，安装推荐扩展 Prettier -
 
 ## 数据结构与版本
 
-使用 6 张业务表和 schema_migrations。目录、练习、事件与成功回执分开保存；实际提问也是事件。字段与接口见[数据契约](docs/data-contracts.md)，列字典见[SQLite 导读](docs/sqlite-migration-guide.md)。
+当前使用 8 张业务／缓存表和 schema_migrations：基础六表加 favorites、turn_translations。目录、练习、事件与成功回执分开保存；实际提问也是事件。补译缓存不改写教学历史。字段与接口见[数据契约](docs/data-contracts.md)，列字典见[SQLite 导读](docs/sqlite-migration-guide.md)。
 
 普通请求不会创建数据库、执行迁移或回退旧文件；缺库、版本不符或数据损坏会明确报错。数据库及 WAL/SHM、备份不可放 public 或提交 Git。运行中的数据库不能只复制主文件；恢复前必须停写并校验，不能用旧 JSON 覆盖新进度。
 

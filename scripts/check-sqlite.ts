@@ -61,7 +61,7 @@ async function main() {
             "SELECT count(*) AS count FROM sqlite_schema WHERE type='table'",
           )
           .get()?.count,
-        7,
+        9,
       );
       const empty = createCatalogSnapshot(catalog);
       writeSnapshotToEmptyDatabase(database, empty);

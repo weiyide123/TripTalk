@@ -41,6 +41,8 @@ export function writeSnapshotToEmptyDatabase(
       "sessions",
       "turns",
       "operation_receipts",
+      "favorites",
+      "turn_translations",
     ]) {
       if (database.prepare(`SELECT 1 FROM ${table} LIMIT 1`).get()) {
         throw new Error("Snapshot target must have no business records");
@@ -67,6 +69,12 @@ export function assertEquivalentSnapshot(
 function canonical(snapshot: SqliteSnapshot) {
   return {
     profile: snapshot.profile,
+    favorites: [...snapshot.favorites].sort((a, b) => a.id.localeCompare(b.id)),
+    translations: [...snapshot.translations].sort((a, b) =>
+      JSON.stringify([a.sourceTurnId, a.sourcePart]).localeCompare(
+        JSON.stringify([b.sourceTurnId, b.sourcePart]),
+      ),
+    ),
     scenes: [...snapshot.scenes].sort((a, b) => a.position - b.position),
     sessions: [...snapshot.sessions].sort((a, b) => a.id.localeCompare(b.id)),
     receipts: [...snapshot.receipts].sort((a, b) => {

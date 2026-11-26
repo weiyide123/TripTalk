@@ -125,6 +125,7 @@ function learnerFeedback(
     verdict: "uncertain" as const,
     errorTypes: [],
     correctedAnswer: null,
+    correctedTranslation: null,
     explanation: null,
     roleplayLine: "Could you try that again?",
     roleplayTranslation: "你能再试一次吗？",

@@ -57,6 +57,8 @@ function evaluation(
     verdict: "correct",
     canContinue: true,
     correctedAnswer: null,
+    learnerTranslation: "我想住三晚。",
+    correctedTranslation: null,
     explanation: null,
     errorTypes: [],
     roleplayLine: "Thank you.",
